@@ -9,10 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Text("Health Predictor App Initialized")
-        }
-        .padding()
+        Text("Hello, World!")
     }
 }
 
