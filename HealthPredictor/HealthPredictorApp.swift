@@ -15,7 +15,7 @@ struct HealthPredictorApp: App {
     }
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HealthPermissionView()
         }
     }
 }

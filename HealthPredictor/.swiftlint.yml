@@ -1,0 +1,7 @@
+disabled_rules:
+  - trailing_whitespace
+  - line_length
+  - unused_closure_parameter
+
+# Optional: silence all warnings and only show errors
+reporter: "xcode"
