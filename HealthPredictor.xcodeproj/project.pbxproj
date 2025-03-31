@@ -19,9 +19,22 @@
 		046F70DF2D91216400D6B0E2 /* HealthPredictor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HealthPredictor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		04D372342D9A095E00D02033 /* Exceptions for "HealthPredictor" folder in "HealthPredictor" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 046F70DE2D91216400D6B0E2 /* HealthPredictor */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		046F70E12D91216400D6B0E2 /* HealthPredictor */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				04D372342D9A095E00D02033 /* Exceptions for "HealthPredictor" folder in "HealthPredictor" target */,
+			);
 			path = HealthPredictor;
 			sourceTree = "<group>";
 		};
@@ -280,6 +293,8 @@
 				DEVELOPMENT_TEAM = 7VS44S3CU5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HealthPredictor/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your health data to provide insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app writes health data to help track your progress.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -312,6 +327,8 @@
 				DEVELOPMENT_TEAM = 7VS44S3CU5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HealthPredictor/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your health data to provide insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app writes health data to help track your progress.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
