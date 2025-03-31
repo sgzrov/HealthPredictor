@@ -35,3 +35,7 @@ struct HealthPermissionView: View {
         .padding()
     }
 }
+
+#Preview {
+    HealthPermissionView()
+}

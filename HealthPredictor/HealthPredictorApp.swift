@@ -13,9 +13,10 @@ struct HealthPredictorApp: App {
     init() {
         FirebaseApp.configure()
     }
+
     var body: some Scene {
         WindowGroup {
-            HealthPermissionView()
+            HomeView()
         }
     }
 }
