@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct MinimizedCardIconView: View {
+struct CardIconView: View {
     let emoji: String
 
     var body: some View {
@@ -22,5 +22,5 @@ struct MinimizedCardIconView: View {
 }
 
 #Preview {
-    MinimizedCardIconView(emoji: "❤️")
+    CardIconView(emoji: "❤️")
 }

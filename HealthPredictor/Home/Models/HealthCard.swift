@@ -3,6 +3,7 @@
 //  HealthPredictor
 //
 //  Created by Stephan  on 02.04.2025.
+
 // The core data model representing each health card in the app.
 
 import Foundation
