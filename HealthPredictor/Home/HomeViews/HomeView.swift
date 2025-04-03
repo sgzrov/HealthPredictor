@@ -3,7 +3,7 @@ import SwiftUI
 struct HomeView: View {
     
     @StateObject var cardViewModel = CardManagerViewModel()
-
+    
     var body: some View {
         ZStack {
             Color(hex: "#100c1c").ignoresSafeArea()
@@ -46,6 +46,12 @@ struct HomeView: View {
                         Button("Add Sleep") {
                             cardViewModel.addCard(CardTemplates.sleep)
                         }
+                        Button("Add Water Intake") {
+                            cardViewModel.addCard(CardTemplates.water)
+                        }
+                        Button("Add Steps") {
+                            cardViewModel.addCard(CardTemplates.steps)
+                        }
                     } label: {
                         Image(systemName: "plus")
                             .foregroundColor(.white)
@@ -56,17 +62,16 @@ struct HomeView: View {
                     .padding(.horizontal, 25)
                 }
 
-                HStack {
-                    MinimizedCardDockView(icons: cardViewModel.minimizedCards.map { $0.emoji })
-                        .frame(width: 56)
-                        
-
-                    Spacer().frame(width: 10)
+                HStack(spacing: 0) {
+                    CardDockView(icons: cardViewModel.minimizedCards.map { $0.emoji })
+                        .frame(width: CardDockView.defaultWidth, height: cardViewModel.minimizedCards.isEmpty ? CardDockView.defaultHeight : nil)
+                        .padding(.leading, 7)
                     
                     ScrollView {
                         LazyVStack(spacing: 10) {
                             ForEach(cardViewModel.visibleCards) { card in
                                 HealthCardView(card: card)
+                                    .frame(maxWidth: .infinity)
                                     .scrollTransition { effect, phase in
                                         let offset = abs(phase.value)
                                         let scale = max(0.85, 1 - offset * 0.3)
@@ -74,7 +79,7 @@ struct HomeView: View {
                                         return effect
                                             .scaleEffect(scale)
                                             .opacity(opacity)
-                                    }
+                                }
                             }
                         }
                         .gesture(
@@ -82,21 +87,21 @@ struct HomeView: View {
                                 .onEnded { value in
                                     withAnimation(.easeInOut(duration: 0.3)) {
                                         if value.translation.height > 20 {
-                                            cardViewModel.handleScrollGesture(direction: .down)
-                                        } else if value.translation.height < -20 {
                                             cardViewModel.handleScrollGesture(direction: .up)
+                                        } else if value.translation.height < -20 {
+                                            cardViewModel.handleScrollGesture(direction: .down)
                                         }
                                     }
                                 }
                         )
                     }
-                    .padding(.vertical, 8)
                     .scrollBounceBehavior(.basedOnSize)
                     .background(Color(hex: "#100c1c"))
-                    .frame(height: 3 * 149)
+                    .frame(height: 3 * 143)
                     .fixedSize(horizontal: false, vertical: true)
                     .clipped()
                 }
+                .padding(.horizontal, 3)
                 
                 Spacer().frame(height: 20)
                 

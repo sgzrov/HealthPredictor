@@ -28,7 +28,7 @@ class CardManagerViewModel: ObservableObject {
     func handleScrollGesture(direction: ScrollDirection) {
         switch direction {
             
-        case .down:
+        case .up:
             guard minimizedCards.count > 0 else { return }
             
             let bottomCard = visibleCards.removeLast()
@@ -37,7 +37,7 @@ class CardManagerViewModel: ObservableObject {
             let previousCard = minimizedCards.removeLast()
             visibleCards.insert(previousCard, at: 0)
             
-        case .up:
+        case .down:
             guard minimizedCards.count > 0 else { return }
             
             let topCard = visibleCards.removeFirst()
@@ -47,7 +47,7 @@ class CardManagerViewModel: ObservableObject {
             visibleCards.append(nextCard)
         }
     }
-
+    
     func addCard(_ card: HealthCard) {
         let exists = visibleCards.contains(where: { $0.title == card.title }) ||
                      minimizedCards.contains(where: { $0.title == card.title })

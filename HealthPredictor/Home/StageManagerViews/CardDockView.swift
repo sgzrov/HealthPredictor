@@ -7,31 +7,35 @@
 
 import SwiftUI
 
-struct MinimizedCardDockView: View {
+struct CardDockView: View {
     let icons: [String]
-
+    static let defaultWidth: CGFloat = 18 +  2 * 5
+    static let iconHeight: CGFloat = 18
+    static let iconSpacing: CGFloat = 8
+    static let verticalPadding: CGFloat = 8
+    static let defaultHeight: CGFloat = iconHeight
+    
     var body: some View {
         ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.gray.opacity(0.15))
+
             VStack(spacing: 8) {
                 if icons.isEmpty {
-                    Spacer().frame(height: 20)
+                    Spacer().frame(height: Self.defaultHeight)
                 } else {
                     ForEach(icons, id: \.self) { emoji in
-                        MinimizedCardIconView(emoji: emoji)
+                        CardIconView(emoji: emoji)
                     }
                 }
             }
             .padding(.horizontal, 5)
             .padding(.vertical, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.15))
-                .frame(width: 30)
-            )
         }
+        .frame(width: Self.defaultWidth, height: Self.defaultHeight)
     }
 }
 
 #Preview {
-    MinimizedCardDockView(icons: ["❤️", "⏰", "🔥", "😴", "💧", "🧠"])
+    CardDockView(icons: ["❤️", "⏰", "🔥", "😴", "💧", "🧠"])
 }
