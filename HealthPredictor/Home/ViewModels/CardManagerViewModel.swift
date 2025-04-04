@@ -1,59 +1,61 @@
-//
-//  CardManagerViewModel.swift
-//  HealthPredictor
-//
-//  Created by Stephan  on 02.04.2025.
-// This view model holds all card logic, splits visible vs minimized.
-
 import Foundation
 import SwiftUI
 
 class CardManagerViewModel: ObservableObject {
-    @Published var visibleCards: [HealthCard]
-    @Published var minimizedCards: [HealthCard]
+    @Published var userCards: [HealthCard]
+    @Published var visibleStartIndex: Int = 0
+
+    let allTemplates = CardTemplates.all
+
+    var visibleCards: [HealthCard] {
+        let end = min(visibleStartIndex + 3, userCards.count)
+        return Array(userCards[visibleStartIndex..<end])
+    }
+
+    var minimizedCards: [HealthCard] {
+        Array(userCards.enumerated().filter { !visibleRange.contains($0.offset) }.map { $0.element })
+    }
+
+    private var visibleRange: Range<Int> {
+        visibleStartIndex..<min(visibleStartIndex + 3, userCards.count)
+    }
+
+    var availableCardTemplates: [HealthCard] {
+        let usedTitles = Set(userCards.map { $0.title })
+        return allTemplates.filter { !usedTitles.contains($0.title) }
+    }
 
     init() {
-        self.visibleCards = [
-            CardTemplates.heartRate,
-            CardTemplates.activeTime,
-            CardTemplates.calories
-        ]
-        self.minimizedCards = []
+        self.userCards = Array(allTemplates.prefix(3))
     }
 
     enum ScrollDirection {
         case up, down
     }
 
+    var isAtTop: Bool {
+        visibleStartIndex == 0
+    }
+
+    var isAtBottom: Bool {
+        visibleStartIndex + 3 >= userCards.count
+    }
+
     func handleScrollGesture(direction: ScrollDirection) {
         switch direction {
-            
         case .up:
-            guard minimizedCards.count > 0 else { return }
-            
-            let bottomCard = visibleCards.removeLast()
-            minimizedCards.insert(bottomCard, at: 0)
-            
-            let previousCard = minimizedCards.removeLast()
-            visibleCards.insert(previousCard, at: 0)
-            
+            guard !isAtTop else { return }
+            visibleStartIndex -= 1
         case .down:
-            guard minimizedCards.count > 0 else { return }
-            
-            let topCard = visibleCards.removeFirst()
-            minimizedCards.append(topCard)
-            
-            let nextCard = minimizedCards.removeFirst()
-            visibleCards.append(nextCard)
+            guard !isAtBottom else { return }
+            visibleStartIndex += 1
         }
     }
-    
-    func addCard(_ card: HealthCard) {
-        let exists = visibleCards.contains(where: { $0.title == card.title }) ||
-                     minimizedCards.contains(where: { $0.title == card.title })
 
+    func addCard(_ card: HealthCard) {
+        let exists = userCards.contains(where: { $0.title == card.title })
         if !exists {
-            minimizedCards.append(card)
+            userCards.append(card)
         }
     }
 }

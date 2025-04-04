@@ -70,5 +70,6 @@ struct CardTemplates {
         cardColor: Color(hex: "#fce6e6"),
         otherColor: Color(hex: "#0c0804")
     )
-
+    
+    static let all: [HealthCard] = [heartRate, activeTime, calories, sleep, water, steps]
 }
