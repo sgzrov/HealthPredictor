@@ -74,7 +74,6 @@ struct HomeView: View {
                                 }
                         )
                     }
-                    .scrollBounceBehavior(.basedOnSize)
                     .background(Color(hex: "#100c1c"))
                     .frame(height: 3 * 143)
                     .fixedSize(horizontal: false, vertical: true)
