@@ -70,7 +70,6 @@ struct HealthCardView: View {
             RoundedRectangle(cornerRadius: 30)
                 .fill(card.cardColor)
         )
-        .padding(.horizontal, 10)
     }
 }
 
