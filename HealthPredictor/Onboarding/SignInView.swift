@@ -10,22 +10,21 @@ import SwiftUI
 struct SignInView: View {
     @State private var email: String = ""
     @State private var password: String = ""
-    
-    
+
     var body: some View {
-        VStack (spacing: 20) {
+        VStack(spacing: 20) {
             Spacer()
-            
+
             Image(systemName: "circle.fill")
                 .resizable()
                 .frame(width: 60, height: 60)
                 .foregroundColor(.black)
-            
+
             Text("Sign In to Continue")
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .multilineTextAlignment(.center)
-            
+
             // Email and Password
             VStack(spacing: 12) {
                 TextField("Email address", text: $email)
@@ -35,13 +34,13 @@ struct SignInView: View {
                     .padding()
                     .background(Color.white)
                     .cornerRadius(10)
-                
+
                 SecureField("Password", text: $password)
                     .padding()
                     .background(Color.white)
                     .cornerRadius(10)
             }
-            
+
             // Or continue with
             HStack {
                 Rectangle()
@@ -54,10 +53,10 @@ struct SignInView: View {
                     .frame(height: 1)
                     .foregroundColor(.gray.opacity(0.3))
             }
-            
+
             Button(action: {
                 // Handle Apple Sign In
-            }) {
+            }, label: {
                 HStack {
                     Image(systemName: "applelogo")
                     Text("Continue with Apple")
@@ -68,11 +67,11 @@ struct SignInView: View {
                 .padding()
                 .background(Color.white)
                 .cornerRadius(10)
-            }
-            
+            })
+
             Button(action: {
                 // Handle Google Sign In
-            }) {
+            }, label: {
                 HStack {
                     Image(systemName: "globe")
                     Text("Continue with Google")
@@ -83,21 +82,21 @@ struct SignInView: View {
                 .padding()
                 .background(Color.white)
                 .cornerRadius(10)
-            }
-            
+            })
+
             Button(action: {
                 // Handle forgot password
-            }) {
+            }, label: {
                 Text("Forgot password?")
                     .font(.caption)
                     .underline()
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
-            }
-            
+            })
+
             Button(action: {
                 // Handle sign-in
-            }) {
+            }, label: {
                 Text("Continue")
                     .font(.headline)
                     .foregroundColor(.white)
@@ -105,27 +104,27 @@ struct SignInView: View {
                     .padding()
                     .background(Color.black)
                     .cornerRadius(10)
-            }
-            
+            })
+
             Spacer()
-            
+
             // Sign up
             HStack(spacing: 4) {
                 Text("Not a member?")
                     .foregroundColor(.black)
                 Button(action: {
                     // Navigate to Sign Up
-                }) {
+                }, label: {
                     Text("Create an account")
                         .underline()
                         .foregroundColor(.black)
                         .fontWeight(.medium)
-                }
+                })
             }
-            
+
         .padding(.horizontal)
             Spacer()
-            
+
             Text("By continuing, you agree to our Terms of Service and Privacy Policy.")
                 .font(.footnote)
                 .foregroundColor(.gray)

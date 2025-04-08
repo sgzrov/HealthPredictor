@@ -20,7 +20,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		04D372342D9A095E00D02033 /* Exceptions for "HealthPredictor" folder in "HealthPredictor" target */ = {
+		04B33E522DA1F48800ACC4CA /* Exceptions for "HealthPredictor" folder in "HealthPredictor" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -30,10 +30,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		046F70E12D91216400D6B0E2 /* HealthPredictor */ = {
+		04B33E382DA1F48800ACC4CA /* HealthPredictor */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				04D372342D9A095E00D02033 /* Exceptions for "HealthPredictor" folder in "HealthPredictor" target */,
+				04B33E522DA1F48800ACC4CA /* Exceptions for "HealthPredictor" folder in "HealthPredictor" target */,
 			);
 			path = HealthPredictor;
 			sourceTree = "<group>";
@@ -60,8 +60,8 @@
 		046F70D62D91216400D6B0E2 = {
 			isa = PBXGroup;
 			children = (
-				046F70E12D91216400D6B0E2 /* HealthPredictor */,
 				046F70E02D91216400D6B0E2 /* Products */,
+				04B33E382DA1F48800ACC4CA /* HealthPredictor */,
 			);
 			sourceTree = "<group>";
 		};
@@ -89,7 +89,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				046F70E12D91216400D6B0E2 /* HealthPredictor */,
+				04B33E382DA1F48800ACC4CA /* HealthPredictor */,
 			);
 			name = HealthPredictor;
 			packageProductDependencies = (

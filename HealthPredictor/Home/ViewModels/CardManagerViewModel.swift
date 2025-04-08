@@ -4,25 +4,40 @@ import SwiftUI
 class CardManagerViewModel: ObservableObject {
     @Published var userCards: [HealthCard]
     @Published var visibleStartIndex: Int = 0
+    @Published var hasAddedCards: Bool = false
 
     let allTemplates = CardTemplates.all
+
+    var availableCardTemplates: [HealthCard] {
+        let usedTitles = Set(userCards.map { $0.title })
+        return allTemplates.filter { !usedTitles.contains($0.title) }
+    }
+
+    var shouldShowDock: Bool {
+        hasAddedCards && !minimizedCards.isEmpty
+    }
 
     var visibleCards: [HealthCard] {
         let end = min(visibleStartIndex + 3, userCards.count)
         return Array(userCards[visibleStartIndex..<end])
     }
 
-    var minimizedCards: [HealthCard] {
-        Array(userCards.enumerated().filter { !visibleRange.contains($0.offset) }.map { $0.element })
-    }
-
     private var visibleRange: Range<Int> {
         visibleStartIndex..<min(visibleStartIndex + 3, userCards.count)
     }
 
-    var availableCardTemplates: [HealthCard] {
-        let usedTitles = Set(userCards.map { $0.title })
-        return allTemplates.filter { !usedTitles.contains($0.title) }
+    var minimizedCards: [HealthCard] {
+        Array(userCards.enumerated().filter { !visibleRange.contains($0.offset) }.map { $0.element })
+    }
+
+    var cardsAbove: [HealthCard] {
+        guard let firstVisible = visibleCards.first, let index = userCards.firstIndex(of: firstVisible) else { return [] }
+        return Array(userCards.prefix(upTo: index))
+    }
+
+    var cardsBelow: [HealthCard] {
+        guard let lastVisible = visibleCards.last, let index = userCards.firstIndex(of: lastVisible) else { return [] }
+        return Array(userCards.suffix(from: index + 1))
     }
 
     init() {
@@ -30,7 +45,8 @@ class CardManagerViewModel: ObservableObject {
     }
 
     enum ScrollDirection {
-        case up, down
+        case upwardMovement
+        case downwardMovement
     }
 
     var isAtTop: Bool {
@@ -43,10 +59,10 @@ class CardManagerViewModel: ObservableObject {
 
     func handleScrollGesture(direction: ScrollDirection) {
         switch direction {
-        case .up:
+        case .upwardMovement:
             guard !isAtTop else { return }
             visibleStartIndex -= 1
-        case .down:
+        case .downwardMovement:
             guard !isAtBottom else { return }
             visibleStartIndex += 1
         }
@@ -56,6 +72,11 @@ class CardManagerViewModel: ObservableObject {
         let exists = userCards.contains(where: { $0.title == card.title })
         if !exists {
             userCards.append(card)
+            hasAddedCards = true
         }
+    }
+
+    func isAtBoundary(for translation: CGFloat) -> Bool {
+        (translation > 0 && isAtTop) || (translation < 0 && isAtBottom)
     }
 }
