@@ -14,19 +14,10 @@ struct MainTabView: View {
                 .tabItem {
                     Image(systemName: "house")
                     Text("Home")
-            }
+                }
         }
-        .onAppear {
-            let appearance = UITabBarAppearance()
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundEffect = UIBlurEffect(style: .systemUltraThinMaterial)
-            appearance.backgroundColor = UIColor.black.withAlphaComponent(0.8)
-
-            UITabBar.appearance().standardAppearance = appearance
-            if #available(iOS 15.0, *) {
-                UITabBar.appearance().scrollEdgeAppearance = appearance
-            }
-        }
+        .toolbarBackground(.visible, for: .tabBar)
+        .toolbarBackground(Color.black.opacity(0.8), for: .tabBar)
     }
 }
 

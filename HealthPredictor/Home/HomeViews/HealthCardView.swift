@@ -8,67 +8,58 @@
 import SwiftUI
 
 struct HealthCardView: View {
-    let card: HealthCard
+    @StateObject var healthCardViewModel: HealthCardViewModel
 
-    // Percentage calculation
-    var percentage: Int {
-        guard card.goal != 0 else { return 0 }
-        return min(100, (card.value * 100) / card.goal)
-    }
-
-    // Bars to fill calculation
-    var filledBars: Int {
-        return min(6, (percentage * 6) / 100)
+    init(card: HealthCard) {
+        _healthCardViewModel = StateObject(wrappedValue: HealthCardViewModel(card: card))
     }
 
     var body: some View {
-        VStack(spacing: 12) {
-
+        VStack(spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Text(card.emoji)
-                Text(card.title)
+                Text(healthCardViewModel.card.emoji)
+                Text(healthCardViewModel.card.title)
                     .font(.system(.headline, design: .rounded))
-                    .foregroundColor(card.otherColor)
+                    .foregroundColor(healthCardViewModel.card.otherColor)
                 Spacer()
                 Text("4% lower")
                     .font(.system(.headline, design: .rounded))
-                    .foregroundColor(card.otherColor)
+                    .foregroundColor(healthCardViewModel.card.otherColor)
             }
             .padding(.top, 3)
 
             HStack(alignment: .firstTextBaseline) {
                 HStack(spacing: 0) {
-                    Text("\(card.value)")
+                    Text("\(healthCardViewModel.card.value)")
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .foregroundColor(card.otherColor)
+                        .foregroundColor(healthCardViewModel.card.otherColor)
                     Text("/")
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundColor(Color(hex: "#505048"))
-                    Text("\(card.goal) \(card.metric)")
+                    Text("\(healthCardViewModel.card.goal) \(healthCardViewModel.card.metric)")
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundColor(Color(hex: "#505048"))
                 }
                 Spacer()
-                Text("\(percentage)%")
+                Text("\(healthCardViewModel.percentage)%")
                     .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(card.otherColor)
+                    .foregroundColor(healthCardViewModel.card.otherColor)
             }
             .offset(y: 5)
 
             HStack(spacing: 4) {
                 ForEach(0..<6) { index in
                     Capsule()
-                        .fill(index < filledBars ? Color(card.otherColor) : Color(hex: "#505048").opacity(0.2))
+                        .fill(index < healthCardViewModel.filledBars ? healthCardViewModel.card.otherColor : Color(hex: "#505048").opacity(0.2))
                         .frame(height: 6)
                 }
             }
             .offset(y: -3)
-
         }
-        .padding(22)
+        .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 30)
-                .fill(card.cardColor)
+                .fill(healthCardViewModel.card.cardColor)
         )
     }
 }

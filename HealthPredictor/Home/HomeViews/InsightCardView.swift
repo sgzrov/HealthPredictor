@@ -8,22 +8,31 @@
 import SwiftUI
 
 struct InsightCardView: View {
-    let insightTitle: String
+    @StateObject var insightCardViewModel: InsightCardViewModel
+
+    init(card: InsightCard) {
+        _insightCardViewModel = StateObject(wrappedValue: InsightCardViewModel(card: card))
+    }
 
     var body: some View {
-        Text(insightTitle)
-            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-            .foregroundColor(.white)
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        HStack {
+            Text(insightCardViewModel.card.title)
+                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                .foregroundColor(insightCardViewModel.card.textColor)
+            Spacer(minLength: 0)
+        }
+        .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(Color(hex: "#28242c"))
+            RoundedRectangle(cornerRadius: 30)
+                .fill(insightCardViewModel.card.backgroundColor)
         )
-        .padding(.horizontal, 20)
     }
 }
 
 #Preview {
-    InsightCardView(insightTitle: "Your sleep quality has dropped 20% throughout this week. Consider winding down earlier.")
+    InsightCardView(card: InsightCard(
+        title: "Your sleep quality has dropped 20% throughout this week. Consider winding down earlier.",
+        backgroundColor: Color(hex: "#28242c"),
+        textColor: .white
+    ))
 }
