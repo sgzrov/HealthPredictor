@@ -27,47 +27,50 @@ struct CardScrollView: View {
             }
 
             ScrollView(.vertical) {
-                LazyVStack(spacing: 12) {
-                    ForEach(cardViewModel.visibleCards) { card in
-                        HealthCardView(card: card)
+                GeometryReader { geometry in
+                    LazyVStack(spacing: LayoutConstants.Card.spacing(for: UIScreen.main.bounds.height)) {
+                        ForEach(cardViewModel.visibleCards) { card in
+                            HealthCardView(card: card, cardManagerViewModel: cardViewModel)
+                        }
                     }
-                }
-                .background(
-                    GeometryReader { geometry in
-                        Color.clear.preference(
-                            key: ScrollOffsetPreferenceKey.self,
-                            value: geometry.frame(in: .named("scroll")).minY
-                        )
-                    }
-                )
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            if cardViewModel.hasAddedCards && !cardViewModel.isAtBoundary(for: value.translation.height) {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                    isScrolling = true
+                    .background(
+                        GeometryReader { scrollGeometry in
+                            Color.clear.preference(
+                                key: ScrollOffsetPreferenceKey.self,
+                                value: scrollGeometry.frame(in: .named("scroll")).minY
+                            )
+                        }
+                    )
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                if cardViewModel.hasAddedCards && !cardViewModel.isAtBoundary(for: value.translation.height) {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                        isScrolling = true
+                                    }
                                 }
                             }
-                        }
-                        .onEnded { value in
-                            if cardViewModel.hasAddedCards && !cardViewModel.isAtBoundary(for: value.translation.height) {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                    if value.translation.height > 25 {
-                                        cardViewModel.handleScrollGesture(direction: .upwardMovement)
-                                    } else if value.translation.height < -25 {
-                                        cardViewModel.handleScrollGesture(direction: .downwardMovement)
-                                    }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                            isScrolling = false
+                            .onEnded { value in
+                                if cardViewModel.hasAddedCards && !cardViewModel.isAtBoundary(for: value.translation.height) {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                        if value.translation.height > 25 {
+                                            cardViewModel.handleScrollGesture(direction: .upwardMovement)
+                                        } else if value.translation.height < -25 {
+                                            cardViewModel.handleScrollGesture(direction: .downwardMovement)
+                                        }
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                                isScrolling = false
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                )
+                    )
+                }
             }
-            .frame(height: 3 * 136)
+            .frame(height: (3 * LayoutConstants.Card.height(for: UIScreen.main.bounds.height)) +
+                   (2 * LayoutConstants.Card.spacing(for: UIScreen.main.bounds.height)))
             .coordinateSpace(name: "scroll")
             .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
                 if cardViewModel.hasAddedCards {
