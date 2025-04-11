@@ -7,6 +7,7 @@ class CardManagerViewModel: ObservableObject {
     @Published var hasAddedCards: Bool = false
 
     let allTemplates = CardTemplates.all
+    private let maxVisibleCards = 3
 
     var availableCardTemplates: [HealthCard] {
         let usedTitles = Set(userCards.map { $0.title })
@@ -18,12 +19,12 @@ class CardManagerViewModel: ObservableObject {
     }
 
     var visibleCards: [HealthCard] {
-        let end = min(visibleStartIndex + 3, userCards.count)
+        let end = min(visibleStartIndex + maxVisibleCards, userCards.count)
         return Array(userCards[visibleStartIndex..<end])
     }
 
     private var visibleRange: Range<Int> {
-        visibleStartIndex..<min(visibleStartIndex + 3, userCards.count)
+        visibleStartIndex..<min(visibleStartIndex + maxVisibleCards, userCards.count)
     }
 
     var minimizedCards: [HealthCard] {
@@ -31,17 +32,19 @@ class CardManagerViewModel: ObservableObject {
     }
 
     var cardsAbove: [HealthCard] {
-        guard let firstVisible = visibleCards.first, let index = userCards.firstIndex(of: firstVisible) else { return [] }
+        guard let firstVisible = visibleCards.first,
+              let index = userCards.firstIndex(of: firstVisible) else { return [] }
         return Array(userCards.prefix(upTo: index))
     }
 
     var cardsBelow: [HealthCard] {
-        guard let lastVisible = visibleCards.last, let index = userCards.firstIndex(of: lastVisible) else { return [] }
+        guard let lastVisible = visibleCards.last,
+              let index = userCards.firstIndex(of: lastVisible) else { return [] }
         return Array(userCards.suffix(from: index + 1))
     }
 
     init() {
-        self.userCards = Array(allTemplates.prefix(3))
+        self.userCards = Array(allTemplates.prefix(maxVisibleCards))
     }
 
     enum ScrollDirection {
@@ -54,7 +57,7 @@ class CardManagerViewModel: ObservableObject {
     }
 
     var isAtBottom: Bool {
-        visibleStartIndex + 3 >= userCards.count
+        visibleStartIndex + maxVisibleCards >= userCards.count
     }
 
     func handleScrollGesture(direction: ScrollDirection) {

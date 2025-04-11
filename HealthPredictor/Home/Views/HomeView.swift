@@ -20,9 +20,6 @@ struct HomeView: View {
 
                 HighlightsView()
             }
-            .safeAreaInset(edge: .bottom) {
-                Color.clear.frame(height: LayoutConstants.headerToContent)
-            }
         }
     }
 }

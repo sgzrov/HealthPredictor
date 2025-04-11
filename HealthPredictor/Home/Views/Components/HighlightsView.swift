@@ -24,7 +24,7 @@ struct HighlightsView: View {
             ))
                 .padding(.horizontal, LayoutConstants.cardPadding)
         }
-        .padding(.top, LayoutConstants.sectionSpacing + LayoutConstants.buttonPadding)
+        .padding(.top, LayoutConstants.sectionSpacing)
     }
 }
 
