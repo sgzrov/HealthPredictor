@@ -99,17 +99,13 @@ class CardManagerViewModel: ObservableObject {
                 let cardHeight = LayoutConstants.Card.height(for: UIScreen.main.bounds.height)
                 let cardSpacing = LayoutConstants.Card.spacing(for: UIScreen.main.bounds.height)
 
-                // Calculate offsets to keep content within ScrollView
                 for visibleIndex in 0..<maxVisibleCards {
                     if visibleIndex < cardIndex {
-                        // Cards above the expanded card move up
                         cardOffsets[visibleIndex] = -cardHeight
                     } else if visibleIndex == cardIndex {
-                        // All cards: calculate position from top and move to first position
                         let currentPosition = CGFloat(visibleIndex) * (cardHeight + cardSpacing)
                         cardOffsets[visibleIndex] = -currentPosition
                     } else {
-                        // Cards below the expanded card move down
                         cardOffsets[visibleIndex] = cardHeight
                     }
                 }
