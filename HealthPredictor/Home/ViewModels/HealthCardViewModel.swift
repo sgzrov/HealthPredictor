@@ -23,19 +23,18 @@ class HealthCardViewModel: ObservableObject {
     }
 
     var trend: String {
-        // This would eventually come from real data analysis
+        // Analyse real data here
         return "4% lower"
     }
 
     func updateTimeRange(_ range: TimeRange) {
         selectedTimeRange = range
-        // Here you would fetch new data for the selected time range
+        // Fetch new data for the selected time range
         objectWillChange.send()
     }
 
-    // Chart data computation could go here
     var chartData: [Double] {
-        // This would eventually return real data based on selectedTimeRange
+        // Return real data based on selected time range
         return [/* sample data */]
     }
 

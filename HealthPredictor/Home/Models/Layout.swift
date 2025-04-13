@@ -9,12 +9,14 @@ import Foundation
 import SwiftUI
 
 public enum LayoutConstants {
-    public static let sectionSpacing: CGFloat = 28
-    public static let headerToContent: CGFloat = 12
-    public static let leadingPadding: CGFloat = 25
+    public static let sectionSpacing: CGFloat = 22
+    public static let headerToContent: CGFloat = 14
+    public static let headerToScrollableContent: CGFloat = 6
+    public static let leadingPadding: CGFloat = 22
     public static let buttonPadding: CGFloat = 5
     public static let cardPadding: CGFloat = 12
     public static let horizontalPadding: CGFloat = 15
+    public static let greetingPadding: CGFloat = 30
 
     enum Card {
         static let defaultHeight: CGFloat = 136
@@ -24,10 +26,16 @@ public enum LayoutConstants {
         static let contentPadding: CGFloat = 20
 
         static func height(for containerHeight: CGFloat) -> CGFloat {
-            return containerHeight * 0.147
+            return containerHeight * 0.146
         }
         static func spacing(for containerHeight: CGFloat) -> CGFloat {
             return containerHeight * 0.015
+        }
+        static func expandedChartHeight(for containerHeight: CGFloat) -> CGFloat {
+            return containerHeight * 0.23
+        }
+        static func expandedSpacing(for containerHeight: CGFloat) -> CGFloat {
+            return containerHeight * 0.017
         }
     }
 }

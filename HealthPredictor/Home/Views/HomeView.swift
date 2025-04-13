@@ -13,12 +13,18 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 0) {
                 GreetingView()
 
-                VStack {
+                VStack(spacing: LayoutConstants.headerToScrollableContent) {
                     GoalHeaderView(cardViewModel: cardViewModel)
                     CardScrollView(cardViewModel: cardViewModel, isScrolling: $isScrolling, scrollOffset: $scrollOffset)
                 }
 
                 HighlightsView()
+            }
+            .safeAreaInset(edge: .top) {
+                Color.clear.frame(height: 0)
+            }
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 12)
             }
         }
     }

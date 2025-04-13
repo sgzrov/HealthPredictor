@@ -21,7 +21,7 @@ struct GreetingView: View {
             .foregroundColor(.gray)
         }
         .padding(.leading, LayoutConstants.leadingPadding)
-        .padding(.bottom, LayoutConstants.sectionSpacing)
+        .padding(.bottom, LayoutConstants.greetingPadding)
     }
 }
 
