@@ -10,14 +10,67 @@ import SwiftUI
 struct HealthCardView: View {
     @StateObject var healthCardViewModel: HealthCardViewModel
     @ObservedObject var cardManagerViewModel: CardManagerViewModel
+    @Binding var isScrolling: Bool
+    let cardIndex: Int
 
-    init(card: HealthCard, cardManagerViewModel: CardManagerViewModel) {
+    init(card: HealthCard, cardIndex: Int, cardManagerViewModel: CardManagerViewModel, isScrolling: Binding<Bool>) {
         _healthCardViewModel = StateObject(wrappedValue: HealthCardViewModel(card: card))
         self.cardManagerViewModel = cardManagerViewModel
+        self._isScrolling = isScrolling
+        self.cardIndex = cardIndex
     }
 
-    var body: some View {
+    @ViewBuilder
+    private func chartContent() -> some View {
+        RoundedRectangle(cornerRadius: 30)
+            .fill(Color(hex: "#28242c"))
+            .frame(height: LayoutConstants.Card.expandedChartHeight(for: UIScreen.main.bounds.height))
+            .overlay(
+                Text("Chart coming soon")
+                    .foregroundColor(.white)
+            )
+    }
+
+    @ViewBuilder
+    private func dividerLine() -> some View {
+        Rectangle()
+            .fill(healthCardViewModel.card.otherColor.opacity(0.1))
+            .frame(height: 1)
+    }
+
+    @ViewBuilder
+    private func expandedHeader() -> some View {
+        HStack {
+            Text("Your heartbeat")
+                .font(.system(.headline, design: .rounded))
+                .foregroundColor(healthCardViewModel.card.otherColor)
+            Spacer()
+            Menu {
+                ForEach(HealthCardViewModel.TimeRange.allCases, id: \.self) { range in
+                    Button(range.rawValue) {
+                        healthCardViewModel.updateTimeRange(range)
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis.rectangle")
+                    .padding(4)
+                    .foregroundColor(Color(hex: "#505048"))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func expandedSection() -> some View {
+        VStack(spacing: LayoutConstants.Card.expandedSpacing(for: UIScreen.main.bounds.height)) {
+            expandedHeader()
+            chartContent()
+        }
+        .padding(20)
+    }
+
+    private var mainContent: some View {
         VStack {
+            // First line (Card name + emoji + trend)
             HStack(alignment: .firstTextBaseline) {
                 Text(healthCardViewModel.card.emoji)
                 Text(healthCardViewModel.card.title)
@@ -30,6 +83,7 @@ struct HealthCardView: View {
             }
             .padding(.top, 3)
 
+            // Second line (Fraction + percentage)
             HStack(alignment: .firstTextBaseline) {
                 HStack(spacing: 0) {
                     Text("\(healthCardViewModel.card.value)")
@@ -47,8 +101,9 @@ struct HealthCardView: View {
                     .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundColor(healthCardViewModel.card.otherColor)
             }
-            .offset(y: 5)
+            .offset(y: 13)
 
+            // Third line (Progress bar)
             HStack(spacing: 4) {
                 ForEach(0..<6) { index in
                     Capsule()
@@ -57,47 +112,38 @@ struct HealthCardView: View {
                 }
             }
             .offset(y: -3)
-
-            if healthCardViewModel.isExpanded {
-                VStack(spacing: 50) {
-                    HStack {
-                        Text("Your heartbeat")
-                            .font(.system(.headline, design: .rounded))
-                            .foregroundColor(healthCardViewModel.card.otherColor)
-                        Spacer()
-                        Menu {
-                            ForEach(HealthCardViewModel.TimeRange.allCases, id: \.self) { range in
-                                Button(range.rawValue) {
-                                    healthCardViewModel.updateTimeRange(range)
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.rectangle")
-                                .padding(4)
-                                .foregroundColor(Color(hex: "#505048"))
-                        }
-                    }
-
-                    RoundedRectangle(cornerRadius: 30)
-                        .fill(Color(hex: "#28242c"))
-                        .frame(height: 200)
-                        .overlay(
-                            Text("Chart coming soon")
-                                .foregroundColor(.white)
-                        )
-                }
-            }
         }
         .padding(20)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            mainContent
+
+            if healthCardViewModel.isExpanded {
+                dividerLine()
+                expandedSection()
+            }
+        }
         .background(
             RoundedRectangle(cornerRadius: 30)
                 .fill(healthCardViewModel.card.cardColor)
         )
+        .offset(y: cardManagerViewModel.offsetForCard(at: cardIndex))
+        .opacity(shouldBeVisible ? 1 : 0)
+        .scaleEffect(shouldBeVisible ? 1 : 0.8)
         .onTapGesture {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                healthCardViewModel.isExpanded.toggle()
+            if !isScrolling {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.95)) {
+                    healthCardViewModel.isExpanded.toggle()
+                    cardManagerViewModel.handleCardExpansion(cardIndex: cardIndex)
+                }
             }
         }
+    }
+
+    private var shouldBeVisible: Bool {
+        cardManagerViewModel.expandedCardIndex == nil || cardManagerViewModel.expandedCardIndex == cardIndex
     }
 }
 
@@ -112,6 +158,8 @@ struct HealthCardView: View {
             cardColor: Color(hex: "#f0fc4c"),
             otherColor: Color(hex: "#0c0804")
         ),
-        cardManagerViewModel: CardManagerViewModel()
+        cardIndex: 0,
+        cardManagerViewModel: CardManagerViewModel(),
+        isScrolling: .constant(false)
     )
 }

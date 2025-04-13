@@ -5,7 +5,7 @@ struct GoalHeaderView: View {
 
     var body: some View {
         HStack {
-            Text("Today's goal")
+            Text("Today's goals")
                 .font(.headline)
                 .bold()
                 .foregroundColor(.white)

@@ -5,6 +5,9 @@ class CardManagerViewModel: ObservableObject {
     @Published var userCards: [HealthCard]
     @Published var visibleStartIndex: Int = 0
     @Published var hasAddedCards: Bool = false
+    @Published var expandedCardIndex: Int?
+    @Published var originalExpandedCardIndex: Int?
+    @Published var cardOffsets: [Int: CGFloat] = [:]
 
     let allTemplates = CardTemplates.all
     private let maxVisibleCards = 3
@@ -82,4 +85,40 @@ class CardManagerViewModel: ObservableObject {
     func isAtBoundary(for translation: CGFloat) -> Bool {
         (translation > 0 && isAtTop) || (translation < 0 && isAtBottom)
     }
+
+    func handleCardExpansion(cardIndex: Int) {
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+            if expandedCardIndex == cardIndex {
+                expandedCardIndex = nil
+                originalExpandedCardIndex = nil
+                cardOffsets.removeAll()
+            } else {
+                originalExpandedCardIndex = cardIndex
+                expandedCardIndex = cardIndex
+
+                let cardHeight = LayoutConstants.Card.height(for: UIScreen.main.bounds.height)
+                let cardSpacing = LayoutConstants.Card.spacing(for: UIScreen.main.bounds.height)
+
+                // Calculate offsets to keep content within ScrollView
+                for visibleIndex in 0..<maxVisibleCards {
+                    if visibleIndex < cardIndex {
+                        // Cards above the expanded card move up
+                        cardOffsets[visibleIndex] = -cardHeight
+                    } else if visibleIndex == cardIndex {
+                        // All cards: calculate position from top and move to first position
+                        let currentPosition = CGFloat(visibleIndex) * (cardHeight + cardSpacing)
+                        cardOffsets[visibleIndex] = -currentPosition
+                    } else {
+                        // Cards below the expanded card move down
+                        cardOffsets[visibleIndex] = cardHeight
+                    }
+                }
+            }
+        }
+    }
+
+    func offsetForCard(at index: Int) -> CGFloat {
+        cardOffsets[index] ?? 0
+    }
 }
+

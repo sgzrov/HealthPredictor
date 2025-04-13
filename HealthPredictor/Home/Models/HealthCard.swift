@@ -9,7 +9,7 @@
 import Foundation
 import SwiftUI
 
-struct HealthCard: Identifiable, Equatable {
+struct HealthCard: Identifiable, Equatable, Hashable {
     let id = UUID()
     let title: String
     let emoji: String
@@ -18,4 +18,8 @@ struct HealthCard: Identifiable, Equatable {
     let metric: String
     let cardColor: Color
     let otherColor: Color
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
 }
