@@ -12,7 +12,7 @@ struct HomeView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 GreetingView()
-                    .offset(y: -12)
+                    .offset(y: -6)
 
                 MenuSelectorView()
                 
@@ -30,12 +30,12 @@ struct HomeView: View {
                         Image(systemName: "plus")
                             .foregroundColor(.white)
                             .font(.title2)
-                            .padding(6)
+                            .padding(3)
                             .background(Circle().fill(Color(hex: "#28242c").opacity(0.8)))
                     }
                     Spacer()
                 }
-                .padding(.vertical, 6)
+                .padding(.vertical, 3)
                 
                 HighlightsView()
             }
