@@ -12,17 +12,34 @@ struct HomeView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 GreetingView()
+                    .offset(y: -12)
 
-                VStack(spacing: LayoutConstants.headerToScrollableContent) {
-                    GoalHeaderView(cardViewModel: cardViewModel)
-                    CardScrollView(cardViewModel: cardViewModel, isScrolling: $isScrolling, scrollOffset: $scrollOffset)
+                MenuSelectorView()
+                
+                CardScrollView(cardViewModel: cardViewModel, isScrolling: $isScrolling, scrollOffset: $scrollOffset)
+                
+                HStack {
+                    Spacer()
+                    Menu {
+                        ForEach(cardViewModel.availableCardTemplates, id: \.title) { card in
+                            Button("Add \(card.title)") {
+                                cardViewModel.addCard(card)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                            .foregroundColor(.white)
+                            .font(.title2)
+                            .padding(6)
+                            .background(Circle().fill(Color(hex: "#28242c").opacity(0.8)))
+                    }
+                    Spacer()
                 }
-
+                .padding(.vertical, 6)
+                
                 HighlightsView()
             }
-            .safeAreaInset(edge: .top) {
-                Color.clear.frame(height: 0)
-            }
+            
             .safeAreaInset(edge: .bottom) {
                 Color.clear.frame(height: 12)
             }

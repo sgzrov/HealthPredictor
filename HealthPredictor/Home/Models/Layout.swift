@@ -21,21 +21,21 @@ public enum LayoutConstants {
     enum Card {
         static let defaultHeight: CGFloat = 136
         static let expandedMultiplier: CGFloat = 3
-        static let spacing: CGFloat = 12
+        static let spacing: CGFloat = 8
         static let cornerRadius: CGFloat = 30
         static let contentPadding: CGFloat = 20
 
         static func height(for containerHeight: CGFloat) -> CGFloat {
-            return containerHeight * 0.146
+            return containerHeight * 0.143
         }
         static func spacing(for containerHeight: CGFloat) -> CGFloat {
-            return containerHeight * 0.015
+            return containerHeight * 0.0115
         }
         static func expandedChartHeight(for containerHeight: CGFloat) -> CGFloat {
             return containerHeight * 0.23
         }
         static func expandedSpacing(for containerHeight: CGFloat) -> CGFloat {
-            return containerHeight * 0.017
+            return containerHeight * 0.012
         }
     }
 }
