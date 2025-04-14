@@ -31,7 +31,6 @@ struct HighlightsView: View {
                     } label: {
                         Image(systemName: "arrow.clockwise")
                             .foregroundColor(.gray)
-                            .padding(3)
                             .rotationEffect(.degrees(isRefreshing ? 360 : 0))
                     }
 
@@ -48,7 +47,6 @@ struct HighlightsView: View {
                     } label: {
                         Image(systemName: isCopied ? "checkmark" : "square.on.square")
                             .foregroundColor(.gray)
-                            .padding(3)
                     }
 
                     Button {
@@ -56,7 +54,6 @@ struct HighlightsView: View {
                     } label: {
                         Image(systemName: "bubble.left.and.bubble.right")
                             .foregroundColor(.gray)
-                            .padding(3)
                     }
                 }
                 .padding(.horizontal, LayoutConstants.horizontalPadding)
@@ -69,7 +66,7 @@ struct HighlightsView: View {
             ))
             .padding(.horizontal, LayoutConstants.cardPadding)
         }
-        .padding(.top, LayoutConstants.sectionSpacing)
+        .padding(.top, 5)
     }
 }
 

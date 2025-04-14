@@ -82,7 +82,6 @@ struct HealthCardView: View {
                     .font(.system(.headline, design: .rounded))
                     .foregroundColor(healthCardViewModel.card.otherColor)
             }
-            .padding(.top, 3)
 
             // Second line (Fraction + percentage)
             HStack(alignment: .firstTextBaseline) {
@@ -90,7 +89,7 @@ struct HealthCardView: View {
                     Text("\(healthCardViewModel.card.value)")
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundColor(healthCardViewModel.card.otherColor)
-                    Text(" / ")
+                    Text("/")
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundColor(Color(hex: "#505048"))
                         .offset(y: -0.7)
@@ -103,7 +102,7 @@ struct HealthCardView: View {
                     .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundColor(healthCardViewModel.card.otherColor)
             }
-            .offset(y: 13)
+            .offset(y: 17)
 
             // Third line (Progress bar)
             HStack(spacing: 4) {
@@ -113,7 +112,6 @@ struct HealthCardView: View {
                         .frame(height: 6)
                 }
             }
-            .offset(y: -3)
         }
         .padding(20)
     }
