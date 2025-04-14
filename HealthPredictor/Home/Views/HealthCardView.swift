@@ -113,7 +113,7 @@ struct HealthCardView: View {
                 }
             }
         }
-        .padding(20)
+        .padding(19)
     }
 
     var body: some View {

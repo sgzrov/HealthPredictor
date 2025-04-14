@@ -66,7 +66,7 @@ struct HighlightsView: View {
             ))
             .padding(.horizontal, LayoutConstants.cardPadding)
         }
-        .padding(.top, 5)
+        .padding(.top, 7)
     }
 }
 

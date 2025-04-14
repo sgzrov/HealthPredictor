@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct MenuSelectorView: View {
-    @State private var selectedTab = "Health Monitor"
-    let tabs = ["Health Monitor", "Messages"]
+    @State private var selectedTab = "Health Summary"
+    let tabs = ["Health Summary", "App Messages"]
 
     var body: some View {
         VStack {
@@ -21,7 +21,7 @@ struct MenuSelectorView: View {
                         }
                     }) {
                         Text(tab)
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.system(size: 14.5, weight: .medium))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(
@@ -33,7 +33,8 @@ struct MenuSelectorView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.top, 15)
+            .padding(.horizontal, LayoutConstants.cardPadding)
+            .padding(.top, 20)
             .padding(.bottom, 20)
         }
     }
