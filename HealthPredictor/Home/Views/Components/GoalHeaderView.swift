@@ -5,8 +5,8 @@ struct GoalHeaderView: View {
 
     var body: some View {
         HStack {
-            Text("Today's goals")
-                .font(.headline)
+            Text("Daily goals")
+                .font(.title3)
                 .bold()
                 .foregroundColor(.white)
                 .padding(.leading, LayoutConstants.leadingPadding)
@@ -23,7 +23,6 @@ struct GoalHeaderView: View {
                 Image(systemName: "plus")
                     .foregroundColor(.white)
                     .padding(5)
-                    .background(Circle().fill(Color(hex: "#28242c").opacity(0.5)))
             }
             .padding(.horizontal, LayoutConstants.horizontalPadding)
         }

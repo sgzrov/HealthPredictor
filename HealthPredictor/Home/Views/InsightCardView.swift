@@ -23,7 +23,7 @@ struct InsightCardView: View {
         }
         .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 30)
+            RoundedRectangle(cornerRadius: 25)
                 .fill(insightCardViewModel.card.backgroundColor)
         )
     }

@@ -70,6 +70,7 @@ struct HealthCardView: View {
 
     private var mainContent: some View {
         VStack {
+
             // First line (Card name + emoji + trend)
             HStack(alignment: .firstTextBaseline) {
                 Text(healthCardViewModel.card.emoji)
@@ -89,9 +90,10 @@ struct HealthCardView: View {
                     Text("\(healthCardViewModel.card.value)")
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundColor(healthCardViewModel.card.otherColor)
-                    Text("/")
+                    Text(" / ")
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundColor(Color(hex: "#505048"))
+                        .offset(y: -0.7)
                     Text("\(healthCardViewModel.card.goal) \(healthCardViewModel.card.metric)")
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundColor(Color(hex: "#505048"))
