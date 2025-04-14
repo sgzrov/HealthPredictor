@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 public enum LayoutConstants {
-    public static let sectionSpacing: CGFloat = 22
+    public static let sectionSpacing: CGFloat = 21
     public static let headerToContent: CGFloat = 14
     public static let headerToScrollableContent: CGFloat = 6
     public static let leadingPadding: CGFloat = 22
