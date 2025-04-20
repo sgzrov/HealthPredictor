@@ -12,8 +12,7 @@ struct HomeView: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 GreetingView()
-                    .offset(y: -6)
-
+                    
                 MenuSelectorView()
                 
                 CardScrollView(cardViewModel: cardViewModel, isScrolling: $isScrolling, scrollOffset: $scrollOffset)
@@ -39,6 +38,7 @@ struct HomeView: View {
                 
                 HighlightsView()
             }
+            .padding(.horizontal, 3)
             
             .safeAreaInset(edge: .bottom) {
                 Color.clear.frame(height: 12)
