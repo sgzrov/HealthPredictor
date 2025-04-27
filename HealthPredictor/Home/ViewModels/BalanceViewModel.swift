@@ -50,19 +50,19 @@ class BalanceViewModel: ObservableObject {
         metrics = [
             BalanceMetric(
                 name: "Activity",
-                averagePercentage: 0.6,
+                averagePercentage: 0,
                 value: "45 min",
                 type: .activity
             ),
             BalanceMetric(
                 name: "Recovery",
-                averagePercentage: 1.0,
+                averagePercentage: 0,
                 value: "7 h",
                 type: .recovery
             ),
             BalanceMetric(
                 name: "Balance",
-                averagePercentage: 1.0,
+                averagePercentage: 0,
                 value: "82%",
                 type: .balance
             )

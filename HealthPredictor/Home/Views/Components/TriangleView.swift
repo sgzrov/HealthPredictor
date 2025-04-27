@@ -8,7 +8,7 @@ import SwiftUI
 struct TriangleView: View {
     let metrics: [BalanceMetric]
     let viewModel: BalanceViewModel
-    let lineWidth: CGFloat = 12
+    let lineWidth: CGFloat = 10
 
     var body: some View {
         GeometryReader { geometry in
@@ -21,8 +21,8 @@ struct TriangleView: View {
             let bottomLeftPoint = CGPoint(x: inset, y: triangleHeight + yOffset - inset)
             let bottomRightPoint = CGPoint(x: width - inset, y: triangleHeight + yOffset - inset)
             let points = [topPoint, bottomRightPoint, bottomLeftPoint]
-            // Centroid of the triangle
-            let center = CGPoint(x: width / 2, y: (triangleHeight / 3) + yOffset)
+            // Centroid of the triangle (located 2/3 up from base)
+            let center = CGPoint(x: width / 2, y: yOffset + triangleHeight * 2 / 3)
 
             ZStack {
                 // Background track (continuous triangle)
@@ -122,6 +122,11 @@ struct TriangleView: View {
                         )
                     }
                 }
+                // Center point marker
+                Circle()
+                    .fill(Color(.tertiarySystemFill))            // or your chosen color
+                    .frame(width: 8, height: 8)         // size of the center dot
+                    .position(x: center.x, y: center.y)
             }
         }
         .aspectRatio(1/(sqrt(3)/2), contentMode: .fit)
@@ -130,9 +135,9 @@ struct TriangleView: View {
 
 #Preview {
     let sampleMetrics = [
-        BalanceMetric(name: "Activity", averagePercentage: 0.6, value: "45 min", type: .activity),
-        BalanceMetric(name: "Recovery", averagePercentage: 1.0, value: "7 h", type: .recovery),
-        BalanceMetric(name: "Balance", averagePercentage: 1.0, value: "82%", type: .balance)
+        BalanceMetric(name: "Activity", averagePercentage: 0, value: "45 min", type: .activity),
+        BalanceMetric(name: "Recovery", averagePercentage: 0.6, value: "7 h", type: .recovery),
+        BalanceMetric(name: "Balance", averagePercentage: 0.9, value: "82%", type: .balance)
     ]
     return TriangleView(
         metrics: sampleMetrics,
