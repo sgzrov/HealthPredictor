@@ -8,15 +8,15 @@ struct HomeView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "#100c1c").ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
                 GreetingView()
-                    
+
                 MenuSelectorView()
-                
+                SummaryView()
+
                 CardScrollView(cardViewModel: cardViewModel, isScrolling: $isScrolling, scrollOffset: $scrollOffset)
-                
                 HStack {
                     Spacer()
                     Menu {
@@ -34,12 +34,8 @@ struct HomeView: View {
                     }
                     Spacer()
                 }
-                .padding(.vertical, 3)
-                
-                HighlightsView()
             }
-            .padding(.horizontal, 3)
-            
+            .padding(.horizontal, 16)
             .safeAreaInset(edge: .bottom) {
                 Color.clear.frame(height: 12)
             }
@@ -50,8 +46,14 @@ struct HomeView: View {
 #Preview {
     TabView {
         HomeView()
+            .preferredColorScheme(.dark)
             .tabItem {
                 Label("Home", systemImage: "house")
+            }
+        ChatView()
+            .preferredColorScheme(.dark)
+            .tabItem {
+                Label("Chat", systemImage: "message")
             }
     }
 }
