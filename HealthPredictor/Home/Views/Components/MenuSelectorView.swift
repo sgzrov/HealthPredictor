@@ -9,48 +9,48 @@ import SwiftUI
 
 struct MenuSelectorView: View {
     @State private var selectedTab = "Overview"
-    let tabs = ["Overview", "Messages"]
+    @Namespace private var segmentNamespace
+    let tabs = ["Overview", "History"]
 
     var body: some View {
-        HStack(spacing: 0) {
-            ZStack {
-                // Background capsule
-                RoundedRectangle(cornerRadius: 25)
-                    .fill(Color.white.opacity(0.1))
+        ZStack {
+            // Background capsule
+            RoundedRectangle(cornerRadius: 32)
+                .fill(Color(.secondarySystemFill))
+                .frame(height: 40)
 
-                HStack(spacing: 8) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.2))
-                        .frame(width: 105, height: 30)
-                        .offset(x: selectedTab == tabs[0] ? 5 : 5 + 105 + 8)
-
-                    Spacer()
-                }
-                
-                // Buttons
-                HStack(spacing: 8) {
-                    ForEach(tabs, id: \.self) { tab in
-                        Button {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                                selectedTab = tab
-                            }
-                        } label: {
-                            Text(tab)
-                                .font(.system(size: 14.5, weight: selectedTab == tab ? .semibold : .medium))
-                                .foregroundColor(selectedTab == tab ? .white : .white.opacity(0.7))
-                                .frame(width: 105, height: 30)
+            // Button row with sliding capsule
+            HStack(spacing: 2) {
+                ForEach(tabs, id: \.self) { tab in
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                            selectedTab = tab
                         }
+                    } label: {
+                        Text(tab)
+                            .fontWeight(selectedTab == tab ? .medium : .medium)
+                            .foregroundColor(selectedTab == tab ? .primary : .primary.opacity(0.7))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                            .background(
+                                Group {
+                                    if selectedTab == tab {
+                                        Capsule()
+                                            .fill(Color(.tertiarySystemFill))
+                                            .matchedGeometryEffect(id: "segment", in: segmentNamespace)
+                                    }
+                                }
+                            )
                     }
                 }
             }
-            .frame(width: 228, height: 38)
+            .padding(.horizontal, 4)
         }
-        .padding(.horizontal, LayoutConstants.cardPadding)
-        .frame(maxWidth: .infinity, alignment: .center)
     }
 }
 
 #Preview {
     MenuSelectorView()
-        .background(Color(hex: "#100c1c"))
+        .preferredColorScheme(.dark)
+        .background(Color(.systemBackground))
 }

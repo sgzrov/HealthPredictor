@@ -18,7 +18,6 @@ struct HighlightsView: View {
                     .font(.title3)
                     .bold()
                     .foregroundColor(.white)
-                    .padding(.leading, LayoutConstants.leadingPadding)
 
                 Spacer()
 
@@ -56,7 +55,6 @@ struct HighlightsView: View {
                             .foregroundColor(.gray)
                     }
                 }
-                .padding(.horizontal, LayoutConstants.horizontalPadding)
             }
 
             InsightCardView(card: InsightCard(
@@ -64,7 +62,6 @@ struct HighlightsView: View {
                 backgroundColor: Color(hex: "#28242c"),
                 textColor: .white
             ))
-            .padding(.horizontal, LayoutConstants.cardPadding)
         }
         .padding(.top, 7)
     }
@@ -72,5 +69,6 @@ struct HighlightsView: View {
 
 #Preview {
     HighlightsView()
-        .background(Color(hex: "#100c1c"))
+        .preferredColorScheme(.dark)
+        .background(Color(.systemBackground))
 }

@@ -87,14 +87,14 @@ struct HealthCardView: View {
             HStack(alignment: .firstTextBaseline) {
                 HStack(spacing: 0) {
                     Text("\(healthCardViewModel.card.value)")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .foregroundColor(healthCardViewModel.card.otherColor)
                     Text("/")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .foregroundColor(Color(hex: "#505048"))
                         .offset(y: -0.7)
                     Text("\(healthCardViewModel.card.goal) \(healthCardViewModel.card.metric)")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .foregroundColor(Color(hex: "#505048"))
                 }
                 Spacer()
@@ -102,7 +102,7 @@ struct HealthCardView: View {
                     .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundColor(healthCardViewModel.card.otherColor)
             }
-            .offset(y: 17)
+            .offset(y: 16)
 
             // Third line (Progress bar)
             HStack(spacing: 4) {
@@ -113,7 +113,7 @@ struct HealthCardView: View {
                 }
             }
         }
-        .padding(19)
+        .padding(20)
     }
 
     var body: some View {

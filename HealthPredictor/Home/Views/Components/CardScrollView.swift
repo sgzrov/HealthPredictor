@@ -104,7 +104,6 @@ struct CardScrollView: View {
             .clipped()
             .padding(.leading, cardViewModel.hasAddedCards && isScrolling && !isExpanded ? 8 : 0)
         }
-        .padding(.horizontal, LayoutConstants.cardPadding)
     }
 }
 

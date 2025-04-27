@@ -29,7 +29,7 @@ struct CardDockView: View {
                     ForEach(cardsAbove, id: \.id) { card in
                         CardIconView(emoji: card.emoji)
                     }
-                    
+
                     if !cardsAbove.isEmpty && !cardsBelow.isEmpty {
                         RoundedRectangle(cornerRadius: 1)
                             .fill(Color.gray.opacity(0.2))

@@ -11,14 +11,15 @@ struct GreetingView: View {
 
     var body: some View {
         HStack(alignment: .lastTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Welcome back,")
-                    .font(.footnote)
-                    .foregroundColor(.gray)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Hello, Max")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
 
-                Text("Stephan")
-                    .font(.headline)
-                    .foregroundColor(.white)
+                Text("Let's check how you feel today")
+                    .font(.footnote)
+                    .foregroundColor(.primary.opacity(0.6))
             }
 
             Spacer()
@@ -34,10 +35,10 @@ struct GreetingView: View {
             }
             .alignmentGuide(.lastTextBaseline) { dimensions in dimensions[.bottom] - 3}
         }
-        .padding(.horizontal, LayoutConstants.leadingPadding)
     }
 }
 
 #Preview {
     GreetingView()
+        .preferredColorScheme(.dark)
 }
