@@ -22,7 +22,7 @@ struct LegendView: View {
                         Text(metric.value)
                             .font(.title3)
                             .fontWeight(.light)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(metric.type.color)
                     }
                 }
             }

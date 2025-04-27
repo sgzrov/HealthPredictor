@@ -14,6 +14,7 @@ struct HomeView: View {
                 GreetingView()
 
                 MenuSelectorView()
+                
                 SummaryView()
 
                 CardScrollView(cardViewModel: cardViewModel, isScrolling: $isScrolling, scrollOffset: $scrollOffset)
