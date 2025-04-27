@@ -11,11 +11,6 @@ struct HomeView: View {
             Color(.systemBackground).ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
-                GreetingView()
-
-                MenuSelectorView()
-                
-                SummaryView()
 
                 CardScrollView(cardViewModel: cardViewModel, isScrolling: $isScrolling, scrollOffset: $scrollOffset)
                 HStack {
