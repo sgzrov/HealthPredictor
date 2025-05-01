@@ -35,6 +35,4 @@ struct StepsChartView: View {
 
 #Preview {
     StepsChartView(viewModel: HealthCardViewModel(card: HealthCard.steps))
-        .padding()
-        .background(Color.gray.opacity(0.1))
 }

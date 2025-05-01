@@ -29,6 +29,4 @@ struct HeartRateChartView: View {
 
 #Preview {
     HeartRateChartView(viewModel: HealthCardViewModel(card: HealthCard.heartRate))
-        .padding()
-        .background(Color.gray.opacity(0.1))
 }

@@ -35,6 +35,4 @@ struct StandHoursChartView: View {
 
 #Preview {
     StandHoursChartView(viewModel: HealthCardViewModel(card: HealthCard.standHours))
-        .padding()
-        .background(Color.gray.opacity(0.1))
 }

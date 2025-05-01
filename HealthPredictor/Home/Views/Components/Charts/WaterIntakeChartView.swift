@@ -1,3 +1,10 @@
+//
+//  WaterIntakeChartView.swift
+//  HealthPredictor
+//
+//  Created by Stephan  on 01.05.2025.
+//
+
 import SwiftUI
 
 struct WaterIntakeChartView: View {
@@ -24,6 +31,4 @@ struct WaterIntakeChartView: View {
 
 #Preview {
     WaterIntakeChartView(viewModel: HealthCardViewModel(card: HealthCard.water))
-        .padding()
-        .background(Color.gray.opacity(0.1))
 }

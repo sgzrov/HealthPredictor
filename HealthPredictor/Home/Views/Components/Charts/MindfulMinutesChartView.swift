@@ -35,6 +35,4 @@ struct MindfulMinutesChartView: View {
 
 #Preview {
     MindfulMinutesChartView(viewModel: HealthCardViewModel(card: HealthCard.mindfulMinutes))
-        .padding()
-        .background(Color.gray.opacity(0.1))
 }

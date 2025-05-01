@@ -37,8 +37,7 @@ class CardManagerViewModel: ObservableObject {
             } else {
                 originalExpandedCardIndex = cardIndex
                 expandedCardIndex = cardIndex
-
-                // When expanding, we don't need to move other cards since we're showing one at a time
+                
                 cardOffsets[cardIndex] = 0
             }
         }
