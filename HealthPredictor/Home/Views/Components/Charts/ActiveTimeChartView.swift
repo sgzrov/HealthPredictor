@@ -35,6 +35,4 @@ struct ActiveTimeChartView: View {
 
 #Preview {
     ActiveTimeChartView(viewModel: HealthCardViewModel(card: HealthCard.activeTime))
-        .padding()
-        .background(Color.gray.opacity(0.1))
 }

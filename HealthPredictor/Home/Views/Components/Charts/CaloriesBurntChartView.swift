@@ -35,6 +35,4 @@ struct CaloriesBurntChartView: View {
 
 #Preview {
     CaloriesBurntChartView(viewModel: HealthCardViewModel(card: HealthCard.caloriesBurnt))
-        .padding()
-        .background(Color.gray.opacity(0.1))
 }

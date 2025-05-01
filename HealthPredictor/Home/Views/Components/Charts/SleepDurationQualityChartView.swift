@@ -35,6 +35,4 @@ struct SleepDurationQualityChartView: View {
 
 #Preview {
     SleepDurationQualityChartView(viewModel: HealthCardViewModel(card: HealthCard.sleepDurationQuality))
-        .padding()
-        .background(Color.gray.opacity(0.1))
 }
