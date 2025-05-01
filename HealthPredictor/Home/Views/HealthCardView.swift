@@ -29,13 +29,28 @@ struct HealthCardView: View {
 
     @ViewBuilder
     private func chartContent() -> some View {
-        RoundedRectangle(cornerRadius: 30)
-            .fill(Color(hex: "#28242c"))
-            .frame(height: LayoutConstants.Card.expandedChartHeight(for: UIScreen.main.bounds.height))
-            .overlay(
-                Text("Chart coming soon")
-                    .foregroundColor(.white)
-            )
+        Group {
+            switch healthCardViewModel.card.type {
+            case .heartRate:
+                HeartRateChartView(viewModel: healthCardViewModel)
+            case .heartRateVariability:
+                HeartRateVariabilityChartView(viewModel: healthCardViewModel)
+            case .caloriesBurnt:
+                CaloriesBurntChartView(viewModel: healthCardViewModel)
+            case .steps:
+                StepsChartView(viewModel: healthCardViewModel)
+            case .standHours:
+                StandHoursChartView(viewModel: healthCardViewModel)
+            case .activeTime:
+                ActiveTimeChartView(viewModel: healthCardViewModel)
+            case .water:
+                WaterIntakeChartView(viewModel: healthCardViewModel)
+            case .sleepDurationQuality:
+                SleepDurationQualityChartView(viewModel: healthCardViewModel)
+            case .mindfulMinutes:
+                MindfulMinutesChartView(viewModel: healthCardViewModel)
+            }
+        }
     }
 
     @ViewBuilder
@@ -50,10 +65,10 @@ struct HealthCardView: View {
         VStack(alignment: .leading, spacing: LayoutConstants.Card.expandedSpacing(for: UIScreen.main.bounds.height)) {
             rangePicker()
             chartContent()
-            Text("Your health has been getting worse. This is due to the fact that you drink less water. To better your hydration and health, increase your dosage of water to 1 liter a day.")
+            Text(healthCardViewModel.card.summary)
                 .font(.callout)
                 .lineSpacing(2)
-                .foregroundColor(Color.black)
+                .foregroundColor(healthCardViewModel.card.otherColor)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
@@ -72,7 +87,7 @@ struct HealthCardView: View {
                 Spacer()
 
                 Button(action: {
-                    // TODO: Ask AI triggers updates here
+                    // Ask AI button opens chat with health card context
                 }) {
                     HStack(spacing: 4) {
                         Text("Ask AI")
@@ -107,9 +122,8 @@ struct HealthCardView: View {
                 .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 10)
             }
             .imageScale(.small)
-            .foregroundColor(.black.opacity(0.3))
+            .foregroundColor(healthCardViewModel.card.otherColor.opacity(0.3))
             .frame(maxWidth: .infinity, alignment: .leading)
-
         }
         .padding(20)
     }
@@ -122,13 +136,13 @@ struct HealthCardView: View {
                 Text(range.rawValue)
                     .font(.system(.subheadline, design: .rounded))
                     .fontWeight(isSelected ? .semibold : .regular)
-                    .foregroundColor(isSelected ? .white : .black)
+                    .foregroundColor(isSelected ? .white : healthCardViewModel.card.otherColor)
                     .frame(maxWidth: .infinity, minHeight: 32)
                     .background(
                         Capsule()
                             .fill(isSelected
-                                  ? Color.black
-                                  : Color.black.opacity(0.2))
+                                  ? healthCardViewModel.card.otherColor
+                                  : healthCardViewModel.card.otherColor.opacity(0.2))
                     )
                     .onTapGesture {
                         withAnimation(.easeInOut) {
@@ -142,17 +156,16 @@ struct HealthCardView: View {
 
     private var mainContent: some View {
         VStack {
-
             // First line (Card name + emoji + trend)
             HStack(alignment: .firstTextBaseline) {
                 Text(healthCardViewModel.card.emoji)
                 Text(healthCardViewModel.card.title)
                     .font(.system(.headline))
-                    .foregroundColor(Color.black)
+                    .foregroundColor(healthCardViewModel.card.otherColor)
                 Spacer()
                 Text(healthCardViewModel.trend)
                     .font(.system(.headline))
-                    .foregroundColor(Color.black)
+                    .foregroundColor(healthCardViewModel.card.otherColor)
             }
 
             // Second line (Fraction + percentage)
@@ -160,19 +173,19 @@ struct HealthCardView: View {
                 HStack(spacing: 0) {
                     Text("\(healthCardViewModel.card.value)")
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundColor(Color.black)
+                        .foregroundColor(healthCardViewModel.card.otherColor)
                     Text("/")
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundColor(Color.black.opacity(0.2))
+                        .foregroundColor(healthCardViewModel.card.otherColor.opacity(0.2))
                         .offset(y: -0.7)
                     Text("\(healthCardViewModel.card.goal) \(healthCardViewModel.card.metric)")
                         .font(.system(.subheadline, weight: .semibold))
-                        .foregroundColor(Color.black.opacity(0.2))
+                        .foregroundColor(healthCardViewModel.card.otherColor.opacity(0.2))
                 }
                 Spacer()
                 Text("\(healthCardViewModel.percentage)%")
                     .font(.system(size: 32, weight: .bold, design: .default))
-                    .foregroundColor(Color.black)
+                    .foregroundColor(healthCardViewModel.card.otherColor)
             }
             .offset(y: 16)
 
@@ -180,7 +193,7 @@ struct HealthCardView: View {
             HStack(spacing: 4) {
                 ForEach(0..<6) { index in
                     Capsule()
-                        .fill(index < healthCardViewModel.filledBars ? Color.black : Color.black.opacity(0.2))
+                        .fill(index < healthCardViewModel.filledBars ? healthCardViewModel.card.otherColor : healthCardViewModel.card.otherColor.opacity(0.2))
                         .frame(height: 6)
                 }
             }
@@ -221,15 +234,7 @@ struct HealthCardView: View {
 
 #Preview {
     HealthCardView(
-        card: HealthCard(
-            title: "Heart rate",
-            emoji: "❤️",
-            value: 65,
-            goal: 82,
-            metric: "bpm",
-            cardColor: Color(hex: "#f0fc4c"),
-            otherColor: .black
-        ),
+        card: HealthCard.heartRate,
         cardIndex: 0,
         cardManagerViewModel: CardManagerViewModel(),
         isScrolling: .constant(false)

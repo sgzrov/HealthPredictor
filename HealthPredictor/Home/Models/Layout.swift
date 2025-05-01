@@ -8,9 +8,6 @@
 import Foundation
 import SwiftUI
 
-/// LayoutConstants follows Apple's 8-point grid system
-/// All spacing values should align to multiples of 8: 8, 16, 24, 32, etc.
-/// For fine-tuning, we can add 4 points (half-grid) for breathing room
 public enum LayoutConstants {
     // Base spacing following 8-point grid
     public static let sectionSpacing: CGFloat = 24      // Was 21
