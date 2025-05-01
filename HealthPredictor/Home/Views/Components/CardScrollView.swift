@@ -30,23 +30,23 @@ struct CardScrollView: View {
                         )
                         .frame(width: UIScreen.main.bounds.width)
                         .id(index)
+                        }
                     }
-                }
                 .scrollTargetLayout()
             }
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $currentIndex)
             .onChange(of: currentIndex) { oldValue, newValue in
                 withAnimation {
-                    isScrolling = true
-                }
+                                        isScrolling = true
+                                    }
                 // Reset scrolling state after a delay
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     withAnimation {
-                        isScrolling = false
-                    }
-                }
-            }
+                                                isScrolling = false
+                                            }
+                                        }
+                                    }
         }
     }
 }

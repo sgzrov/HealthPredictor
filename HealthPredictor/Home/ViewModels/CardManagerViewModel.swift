@@ -8,7 +8,7 @@ class CardManagerViewModel: ObservableObject {
     @Published var originalExpandedCardIndex: Int?
     @Published var cardOffsets: [Int: CGFloat] = [:]
 
-    let allTemplates = CardTemplates.all
+    let allTemplates = HealthCard.all
 
     var availableCardTemplates: [HealthCard] {
         let usedTitles = Set(userCards.map { $0.title })
@@ -17,11 +17,7 @@ class CardManagerViewModel: ObservableObject {
 
     init() {
         // Start with heart rate card by default
-        if let heartRateCard = allTemplates.first(where: { $0.title == "Heart Rate" }) {
-            self.userCards = [heartRateCard]
-        } else {
-            self.userCards = Array(allTemplates.prefix(1))
-        }
+        self.userCards = [HealthCard.heartRate]
     }
 
     func addCard(_ card: HealthCard) {
