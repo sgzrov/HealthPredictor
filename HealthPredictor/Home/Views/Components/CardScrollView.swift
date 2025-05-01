@@ -11,7 +11,7 @@ struct CardScrollView: View {
     @ObservedObject var cardViewModel: CardManagerViewModel
     @Binding var isScrolling: Bool
     @Binding var scrollOffset: CGFloat
-    @State private var cardPositions: [CardPosition] = []
+    @State private var currentIndex: Int?
 
     private var isExpanded: Bool {
         cardViewModel.expandedCardIndex != nil
@@ -19,94 +19,42 @@ struct CardScrollView: View {
 
     var body: some View {
         HStack {
-            if isScrolling && cardViewModel.shouldShowDock && !isExpanded {
-                CardDockView(
-                    cardsAbove: cardViewModel.cardsAbove,
-                    cardsBelow: cardViewModel.cardsBelow
-                )
-                .frame(width: CardDockView.defaultWidth, height: cardViewModel.minimizedCards.isEmpty ? CardDockView.defaultHeight : CGFloat(cardViewModel.minimizedCards.count) * (CardDockView.iconHeight + CardDockView.iconSpacing) + CardDockView.verticalPadding * 2)
-                .transition(.asymmetric(
-                    insertion: .scale(scale: 0.8).combined(with: .move(edge: .leading)).combined(with: .opacity),
-                    removal: .scale(scale: 0.8).combined(with: .move(edge: .leading)).combined(with: .opacity)
-                ))
-            }
-
-            ScrollView(.vertical, showsIndicators: false) {
-                GeometryReader { geometry in
-                    LazyVStack(spacing: LayoutConstants.Card.spacing(for: UIScreen.main.bounds.height)) {
-                        ForEach(Array(zip(cardViewModel.visibleCards.indices, cardViewModel.visibleCards)), id: \.1) { index, card in
-                            HealthCardView(card: card, cardIndex: index, cardManagerViewModel: cardViewModel, isScrolling: $isScrolling)
-                                .background(
-                                    GeometryReader { cardGeometry in
-                                        Color.clear.preference(
-                                            key: CardPositionPreferenceKey.self,
-                                            value: [CardPosition(
-                                                id: card.title,
-                                                frame: cardGeometry.frame(in: .named("scroll"))
-                                            )]
-                                        )
-                                    }
-                                )
-                        }
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 0) {
+                    ForEach(Array(cardViewModel.userCards.enumerated()), id: \.element.id) { index, card in
+                        HealthCardView(
+                            card: card,
+                            cardIndex: index,
+                            cardManagerViewModel: cardViewModel,
+                            isScrolling: $isScrolling
+                        )
+                        .frame(width: UIScreen.main.bounds.width)
+                        .id(index)
                     }
-                    .padding(.vertical, LayoutConstants.Card.spacing(for: UIScreen.main.bounds.height) / 2)
-                    .background(
-                        GeometryReader { scrollGeometry in
-                            Color.clear.preference(
-                                key: ScrollOffsetPreferenceKey.self,
-                                value: scrollGeometry.frame(in: .named("scroll")).minY
-                            )
-                        }
-                    )
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                if !isExpanded && cardViewModel.hasAddedCards && !cardViewModel.isAtBoundary(for: value.translation.height) {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                        isScrolling = true
-                                    }
-                                }
-                            }
-                            .onEnded { value in
-                                if !isExpanded && cardViewModel.hasAddedCards && !cardViewModel.isAtBoundary(for: value.translation.height) {
-                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                        if value.translation.height > 25 {
-                                            cardViewModel.handleScrollGesture(direction: .upwardMovement)
-                                        } else if value.translation.height < -25 {
-                                            cardViewModel.handleScrollGesture(direction: .downwardMovement)
-                                        }
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-                                            withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                                                isScrolling = false
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                    )
                 }
+                .scrollTargetLayout()
             }
-            .frame(height: (3 * LayoutConstants.Card.height(for: UIScreen.main.bounds.height)) +
-                   (2 * LayoutConstants.Card.spacing(for: UIScreen.main.bounds.height)) +
-                   (LayoutConstants.Card.spacing(for: UIScreen.main.bounds.height)))
-            .coordinateSpace(name: "scroll")
-            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { value in
-                if cardViewModel.hasAddedCards && !isExpanded {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
-                        isScrolling = abs(value - scrollOffset) > 1.5
-                        scrollOffset = value
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $currentIndex)
+            .onChange(of: currentIndex) { oldValue, newValue in
+                withAnimation {
+                    isScrolling = true
+                }
+                // Reset scrolling state after a delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation {
+                        isScrolling = false
                     }
                 }
             }
-            .onPreferenceChange(CardPositionPreferenceKey.self) { positions in
-                cardPositions = positions
-            }
-            .clipped()
-            .padding(.leading, cardViewModel.hasAddedCards && isScrolling && !isExpanded ? 8 : 0)
         }
     }
 }
 
 #Preview {
-    CardScrollView(cardViewModel: CardManagerViewModel(), isScrolling: .constant(false), scrollOffset: .constant(0))
+    CardScrollView(
+        cardViewModel: CardManagerViewModel(),
+        isScrolling: .constant(false),
+        scrollOffset: .constant(0)
+    )
 }

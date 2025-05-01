@@ -18,7 +18,7 @@ struct CardTemplates {
         goal: 80,
         metric: "bpm",
         cardColor: Color(hex: "#f0fc4c"),
-        otherColor: Color(hex: "#0c0804")
+        otherColor: .black
     )
     
     static let activeTime = HealthCard(
@@ -28,7 +28,7 @@ struct CardTemplates {
         goal: 60,
         metric: "minutes",
         cardColor: Color(hex: "#1c1b20"),
-        otherColor: Color.white
+        otherColor: .white
     )
 
     static let calories = HealthCard(
