@@ -12,6 +12,7 @@ struct HealthCardView: View {
     @ObservedObject var cardManagerViewModel: CardManagerViewModel
     @Binding var isScrolling: Bool
     @State private var selectedRange: TimeRange = .day
+    @State private var showInsightReactions = true
     let cardIndex: Int
 
     // Time‐range selection for expanded chart
@@ -60,77 +61,83 @@ struct HealthCardView: View {
             .frame(height: 1)
     }
 
+    private func insightView() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 12, weight: .medium))
+                Text("AI Summary")
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .foregroundColor(.white)
+
+            AnimatedTextView(
+                text: healthCardViewModel.card.summary,
+                font: Font.system(size: 15, weight: .regular),
+                textColor: Color.white.opacity(0.9)
+            )
+
+            if showInsightReactions {
+                HStack(spacing: 8) {
+                    ForEach(["square.on.square", "speaker.wave.2", "hand.thumbsup", "hand.thumbsdown"], id: \.self) { iconName in
+                        Button(action: {
+                            // Handle reaction
+                        }) {
+                            Image(systemName: iconName)
+                                .font(.system(size: 13))
+                                .fontWeight(.light)
+                        }
+                        .foregroundColor(.white.opacity(0.4))
+                        .hoverEffect(.highlight)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Ask a follow-up")
+                        .font(.system(size: 13, weight: .medium))
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.black)
+                        )
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(LinearGradient(
+                            colors: [
+                                .white.opacity(0.3),
+                                .white.opacity(0.1)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ), lineWidth: 0.5)
+                )
+        )
+        .shadow(color: .black.opacity(0.15), radius: 15, x: 0, y: 10)
+    }
+
     @ViewBuilder
     private func expandedSection() -> some View {
-        VStack(alignment: .leading, spacing: LayoutConstants.Card.expandedSpacing(for: UIScreen.main.bounds.height)) {
+        VStack(alignment: .leading, spacing: LayoutConstants.expandedSpacing(for: UIScreen.main.bounds.height)) {
             rangePicker()
             chartContent()
-            Text(healthCardViewModel.card.summary)
-                .font(.callout)
-                .lineSpacing(2)
-                .foregroundColor(healthCardViewModel.card.otherColor)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color(.tertiarySystemFill).opacity(0.3))
-                )
-                .padding(.top, 12)
-
-            HStack(spacing: 8) {
-                Image(systemName: "square.on.square")
-                Image(systemName: "speaker.wave.2")
-                Image(systemName: "hand.thumbsup")
-                Image(systemName: "hand.thumbsdown")
-
-                Spacer()
-
-                Button(action: {
-                    // Ask AI button opens chat with health card context
-                }) {
-                    HStack(spacing: 4) {
-                        Text("Ask AI")
-                            .font(.subheadline)
-                        Image(systemName: "sparkles")
-                    }
-                    .foregroundColor(.white)
-                }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 8)
-                .background(
-                    AnimatedMeshView()
-                        .mask(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(lineWidth: 12)
-                                .blur(radius: 4)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(.white, lineWidth: 3)
-                                .blur(radius: 2)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(.white, lineWidth: 1)
-                                .blur(radius: 1)
-                                .blendMode(.overlay)
-                        )
-                )
-                .background(.black.opacity(0.1))
-                .cornerRadius(8)
-                .shadow(color: .black.opacity(0.15), radius: 20, x: 0, y: 10)
-            }
-            .imageScale(.small)
-            .foregroundColor(healthCardViewModel.card.otherColor.opacity(0.3))
-            .frame(maxWidth: .infinity, alignment: .leading)
+            insightView()
         }
         .padding(20)
+        .padding(.top, -4)
     }
 
     @ViewBuilder
     private func rangePicker() -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 8) {
             ForEach(TimeRange.allCases) { range in
                 let isSelected = selectedRange == range
                 Text(range.rawValue)
@@ -142,7 +149,7 @@ struct HealthCardView: View {
                         Capsule()
                             .fill(isSelected
                                   ? healthCardViewModel.card.otherColor
-                                  : healthCardViewModel.card.otherColor.opacity(0.2))
+                                  : healthCardViewModel.card.otherColor.opacity(0.15))
                     )
                     .onTapGesture {
                         withAnimation(.easeInOut) {
@@ -239,4 +246,5 @@ struct HealthCardView: View {
         cardManagerViewModel: CardManagerViewModel(),
         isScrolling: .constant(false)
     )
+    .preferredColorScheme(.dark)
 }
