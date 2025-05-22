@@ -51,14 +51,14 @@ struct CardDockView: View {
 #Preview {
     CardDockView(
         cardsAbove: [
-            HealthCard(title: "Heart Rate", emoji: "❤️", value: 65, goal: 80, metric: "bpm", cardColor: .red, otherColor: .white),
-            HealthCard(title: "Active Time", emoji: "⏰", value: 30, goal: 60, metric: "minutes", cardColor: .gray, otherColor: .white)
+            HealthCard(title: "Heart Rate", emoji: "❤️", value: 65, goal: 80, metric: "bpm", cardColor: .red, otherColor: .white, summary: "placeholder", type: HealthCardType.heartRate),
+            HealthCard(title: "Active Time", emoji: "⏰", value: 30, goal: 60, metric: "minutes", cardColor: .gray, otherColor: .white, summary: "placeholder", type: HealthCardType.activeTime)
         ],
         cardsBelow: [
-            HealthCard(title: "Calories", emoji: "🔥", value: 600, goal: 1000, metric: "kcal", cardColor: .orange, otherColor: .white),
-            HealthCard(title: "Sleep", emoji: "😴", value: 6, goal: 8, metric: "hours", cardColor: .purple, otherColor: .white),
-            HealthCard(title: "Water", emoji: "💧", value: 2, goal: 3, metric: "liters", cardColor: .blue, otherColor: .white),
-            HealthCard(title: "Mind", emoji: "🧠", value: 5, goal: 10, metric: "sessions", cardColor: .pink, otherColor: .white)
+            HealthCard(title: "Calories", emoji: "🔥", value: 600, goal: 1000, metric: "kcal", cardColor: .orange, otherColor: .white, summary: "placeholder", type: HealthCardType.caloriesBurnt),
+            HealthCard(title: "Sleep", emoji: "😴", value: 6, goal: 8, metric: "hours", cardColor: .purple, otherColor: .white, summary: "placeholder", type: HealthCardType.sleepDurationQuality),
+            HealthCard(title: "Water", emoji: "💧", value: 2, goal: 3, metric: "liters", cardColor: .blue, otherColor: .white, summary: "placeholder", type: HealthCardType.water),
+            HealthCard(title: "Mind", emoji: "🧠", value: 5, goal: 10, metric: "sessions", cardColor: .pink, otherColor: .white, summary: "placeholder", type: HealthCardType.mindfulMinutes)
         ]
     )
 }

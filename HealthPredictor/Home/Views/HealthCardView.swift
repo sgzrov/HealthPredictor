@@ -11,7 +11,15 @@ struct HealthCardView: View {
     @StateObject var healthCardViewModel: HealthCardViewModel
     @ObservedObject var cardManagerViewModel: CardManagerViewModel
     @Binding var isScrolling: Bool
+    @State private var selectedRange: TimeRange = .day
+    @State private var showInsightReactions = true
     let cardIndex: Int
+
+    // Time‐range selection for expanded chart
+    enum TimeRange: String, CaseIterable, Identifiable {
+      case day = "D", week = "W", month = "M", year = "Y"
+      var id: String { rawValue }
+    }
 
     init(card: HealthCard, cardIndex: Int, cardManagerViewModel: CardManagerViewModel, isScrolling: Binding<Bool>) {
         _healthCardViewModel = StateObject(wrappedValue: HealthCardViewModel(card: card))
@@ -22,64 +30,148 @@ struct HealthCardView: View {
 
     @ViewBuilder
     private func chartContent() -> some View {
-        RoundedRectangle(cornerRadius: 30)
-            .fill(Color(hex: "#28242c"))
-            .frame(height: LayoutConstants.Card.expandedChartHeight(for: UIScreen.main.bounds.height))
-            .overlay(
-                Text("Chart coming soon")
-                    .foregroundColor(.white)
-            )
-    }
-
-    @ViewBuilder
-    private func dividerLine() -> some View {
-        Rectangle()
-            .fill(healthCardViewModel.card.otherColor.opacity(0.1))
-            .frame(height: 1)
-    }
-
-    @ViewBuilder
-    private func expandedHeader() -> some View {
-        HStack {
-            Text("Your heartbeat")
-                .font(.system(.headline, design: .rounded))
-                .foregroundColor(healthCardViewModel.card.otherColor)
-            Spacer()
-            Menu {
-                ForEach(HealthCardViewModel.TimeRange.allCases, id: \.self) { range in
-                    Button(range.rawValue) {
-                        healthCardViewModel.updateTimeRange(range)
-                    }
-                }
-            } label: {
-                Image(systemName: "ellipsis.rectangle")
-                    .padding(4)
-                    .foregroundColor(Color(hex: "#505048"))
+        Group {
+            switch healthCardViewModel.card.type {
+            case .heartRate:
+                HeartRateChartView(viewModel: healthCardViewModel)
+            case .heartRateVariability:
+                HeartRateVariabilityChartView(viewModel: healthCardViewModel)
+            case .caloriesBurnt:
+                CaloriesBurntChartView(viewModel: healthCardViewModel)
+            case .steps:
+                StepsChartView(viewModel: healthCardViewModel)
+            case .standHours:
+                StandHoursChartView(viewModel: healthCardViewModel)
+            case .activeTime:
+                ActiveTimeChartView(viewModel: healthCardViewModel)
+            case .water:
+                WaterIntakeChartView(viewModel: healthCardViewModel)
+            case .sleepDurationQuality:
+                SleepDurationQualityChartView(viewModel: healthCardViewModel)
+            case .mindfulMinutes:
+                MindfulMinutesChartView(viewModel: healthCardViewModel)
             }
         }
     }
 
     @ViewBuilder
+    private func dividerLine() -> some View {
+        Rectangle()
+            .fill(Color.black.opacity(0.1))
+            .frame(height: 1)
+    }
+
+    private func insightView() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 12, weight: .medium))
+                Text("AI Summary")
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .foregroundColor(.white)
+
+            AnimatedTextView(
+                text: healthCardViewModel.card.summary,
+                font: Font.system(size: 15, weight: .regular),
+                textColor: Color.white.opacity(0.9)
+            )
+
+            if showInsightReactions {
+                HStack(spacing: 8) {
+                    ForEach(["square.on.square", "speaker.wave.2", "hand.thumbsup", "hand.thumbsdown"], id: \.self) { iconName in
+                        Button(action: {
+                            // Handle reaction
+                        }) {
+                            Image(systemName: iconName)
+                                .font(.system(size: 13))
+                                .fontWeight(.light)
+                        }
+                        .foregroundColor(.white.opacity(0.4))
+                        .hoverEffect(.highlight)
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Ask a follow-up")
+                        .font(.system(size: 13, weight: .medium))
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(.black)
+                        )
+                }
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(LinearGradient(
+                            colors: [
+                                .white.opacity(0.3),
+                                .white.opacity(0.1)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ), lineWidth: 0.5)
+                )
+        )
+        .shadow(color: .black.opacity(0.15), radius: 15, x: 0, y: 10)
+    }
+
+    @ViewBuilder
     private func expandedSection() -> some View {
-        VStack(spacing: LayoutConstants.Card.expandedSpacing(for: UIScreen.main.bounds.height)) {
-            expandedHeader()
+        VStack(alignment: .leading, spacing: LayoutConstants.expandedSpacing(for: UIScreen.main.bounds.height)) {
+            rangePicker()
             chartContent()
+            insightView()
         }
         .padding(20)
+        .padding(.top, -4)
+    }
+
+    @ViewBuilder
+    private func rangePicker() -> some View {
+        HStack(spacing: 8) {
+            ForEach(TimeRange.allCases) { range in
+                let isSelected = selectedRange == range
+                Text(range.rawValue)
+                    .font(.system(.subheadline, design: .rounded))
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundColor(isSelected ? .white : healthCardViewModel.card.otherColor)
+                    .frame(maxWidth: .infinity, minHeight: 32)
+                    .background(
+                        Capsule()
+                            .fill(isSelected
+                                  ? healthCardViewModel.card.otherColor
+                                  : healthCardViewModel.card.otherColor.opacity(0.15))
+                    )
+                    .onTapGesture {
+                        withAnimation(.easeInOut) {
+                            selectedRange = range
+                        }
+                    }
+            }
+        }
+        .padding(.horizontal, 16)
     }
 
     private var mainContent: some View {
         VStack {
-
             // First line (Card name + emoji + trend)
             HStack(alignment: .firstTextBaseline) {
                 Text(healthCardViewModel.card.emoji)
                 Text(healthCardViewModel.card.title)
-                    .font(.system(.headline, design: .rounded))
+                    .font(.system(.headline))
                     .foregroundColor(healthCardViewModel.card.otherColor)
                 Spacer()
                 Text(healthCardViewModel.trend)
-                    .font(.system(.headline, design: .rounded))
+                    .font(.system(.headline))
                     .foregroundColor(healthCardViewModel.card.otherColor)
             }
 
@@ -87,19 +179,19 @@ struct HealthCardView: View {
             HStack(alignment: .firstTextBaseline) {
                 HStack(spacing: 0) {
                     Text("\(healthCardViewModel.card.value)")
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .font(.system(.subheadline, weight: .semibold))
                         .foregroundColor(healthCardViewModel.card.otherColor)
                     Text("/")
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                        .foregroundColor(Color(hex: "#505048"))
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundColor(healthCardViewModel.card.otherColor.opacity(0.2))
                         .offset(y: -0.7)
                     Text("\(healthCardViewModel.card.goal) \(healthCardViewModel.card.metric)")
-                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                        .foregroundColor(Color(hex: "#505048"))
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundColor(healthCardViewModel.card.otherColor.opacity(0.2))
                 }
                 Spacer()
                 Text("\(healthCardViewModel.percentage)%")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 32, weight: .bold, design: .default))
                     .foregroundColor(healthCardViewModel.card.otherColor)
             }
             .offset(y: 16)
@@ -108,7 +200,7 @@ struct HealthCardView: View {
             HStack(spacing: 4) {
                 ForEach(0..<6) { index in
                     Capsule()
-                        .fill(index < healthCardViewModel.filledBars ? healthCardViewModel.card.otherColor : Color(hex: "#505048").opacity(0.2))
+                        .fill(index < healthCardViewModel.filledBars ? healthCardViewModel.card.otherColor : healthCardViewModel.card.otherColor.opacity(0.2))
                         .frame(height: 6)
                 }
             }
@@ -149,17 +241,10 @@ struct HealthCardView: View {
 
 #Preview {
     HealthCardView(
-        card: HealthCard(
-            title: "Heart rate",
-            emoji: "❤️",
-            value: 65,
-            goal: 82,
-            metric: "bpm",
-            cardColor: Color(hex: "#f0fc4c"),
-            otherColor: Color(hex: "#0c0804")
-        ),
+        card: HealthCard.heartRate,
         cardIndex: 0,
         cardManagerViewModel: CardManagerViewModel(),
         isScrolling: .constant(false)
     )
+    .preferredColorScheme(.dark)
 }
