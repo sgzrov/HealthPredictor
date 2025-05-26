@@ -8,14 +8,18 @@
 import SwiftUI
 
 struct ImportSheetView: View {
+
     @ObservedObject var importVM: StudiesImportViewModel
+
     @Binding var showFileImporter: Bool
     @Binding var selectedFileURL: URL?
+
     var onDismiss: () -> Void
 
     var body: some View {
         ZStack {
             Color(.systemGroupedBackground).ignoresSafeArea()
+
             VStack(spacing: 0) {
                 HStack {
                     Spacer()
@@ -33,6 +37,9 @@ struct ImportSheetView: View {
                 }
 
                 VStack(spacing: 20) {
+                    Text("📥")
+                        .font(.system(size: 60))
+                        .padding(.bottom, 8)
                     VStack {
                         Text("Import")
                             .font(.title)
@@ -41,7 +48,7 @@ struct ImportSheetView: View {
                             .font(.title)
                             .fontWeight(.bold)
                     }
-                    Text("Import studies via text, URL, or document to see how their results correlate with your health data.")
+                    Text("Import studies via URL or document to see how their results correlate with your health data.")
                         .font(.headline)
                         .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
@@ -71,25 +78,21 @@ struct ImportSheetView: View {
                     .padding(.bottom, 8)
                 }
 
-                if importVM.isText {
-                    TextEditor(text: $importVM.importInput)
-                        .frame(minHeight: 100, maxHeight: 200)
-                        .padding(12)
-                        .background(Color(.secondarySystemFill))
-                        .cornerRadius(12)
-                        .padding(.horizontal, 8)
-                        .padding(.bottom, 2)
-                } else {
+                VStack(spacing: 8) {
                     HStack {
                         Image(systemName: "link")
                             .foregroundColor(Color(.tertiaryLabel))
-                        TextField("Paste URL or text here", text: $importVM.importInput)
+                        TextField("Paste URL here", text: $importVM.importInput)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .truncationMode(.middle)
+                            .onChange(of: importVM.importInput) { oldValue, newValue in
+                                importVM.validateURL()
+                            }
                         if !importVM.importInput.isEmpty {
                             Button(action: {
                                 importVM.importInput = ""
+                                importVM.errorMessage = ""
                             }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.gray)
@@ -99,9 +102,17 @@ struct ImportSheetView: View {
                     .padding(12)
                     .background(Color(.secondarySystemFill))
                     .cornerRadius(12)
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 2)
+
+                    if !importVM.errorMessage.isEmpty {
+                        Text(importVM.errorMessage)
+                            .foregroundColor(.red)
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 2)
+                    }
                 }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 2)
 
                 Button(action: {
                     showFileImporter = true
@@ -109,7 +120,7 @@ struct ImportSheetView: View {
                     Text("Choose Files...")
                         .font(.subheadline)
                         .foregroundColor(.accentColor)
-                        .padding(.top, 8)
+                        .padding(.top, 10)
                 }
                 .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.pdf, .plainText, .rtf, .text, .data], allowsMultipleSelection: false) { result in
                     switch result {
