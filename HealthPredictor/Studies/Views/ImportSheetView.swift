@@ -94,6 +94,9 @@ struct ImportSheetView: View {
                         .padding(10)
                         .background(Color(.secondarySystemFill))
                         .cornerRadius(12)
+                        
+                        TagView(tag: Tag(name: "Calories", color: .blue))
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
                         if !importVM.errorMessage.isEmpty {
                             Text(importVM.errorMessage)
