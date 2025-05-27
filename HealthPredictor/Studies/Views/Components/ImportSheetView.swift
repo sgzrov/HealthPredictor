@@ -102,7 +102,12 @@ struct ImportSheetView: View {
                     let dateString: String = {
                         guard let fileDate else { return "" }
                         let formatter = DateFormatter()
-                        formatter.dateFormat = "mm.dd.yyyy"
+                        let regionCode = Locale.current.region?.identifier ?? "US"
+                        if ["US", "CA", "PH"].contains(regionCode) {
+                            formatter.dateFormat = "MM.dd.yyyy"
+                        } else {
+                            formatter.dateFormat = "dd.MM.yyyy"
+                        }
                         return formatter.string(from: fileDate)
                     }()
 
