@@ -14,6 +14,10 @@ struct ImportSheetView: View {
     @Binding var showFileImporter: Bool
     @Binding var selectedFileURL: URL?
 
+    @State private var shakeTrigger: CGFloat = 0
+
+    @FocusState private var isTextFieldFocused: Bool
+
     var onDismiss: () -> Void
 
     var body: some View {
@@ -61,10 +65,19 @@ struct ImportSheetView: View {
                         HStack {
                             Image(systemName: "link")
                                 .foregroundColor(Color(.tertiaryLabel))
+                                .modifier(ShakeEffect(shakes: shakeTrigger))
                             TextField("Paste URL here", text: $importVM.importInput)
                                 .autocapitalization(.none)
                                 .disableAutocorrection(true)
                                 .truncationMode(.middle)
+                                .focused($isTextFieldFocused)
+                                .onChange(of: isTextFieldFocused) { oldValue, newValue in
+                                    if newValue {
+                                        withAnimation(.easeOut(duration: 0.4)) {
+                                            shakeTrigger += 1
+                                        }
+                                    }
+                                }
                                 .onChange(of: importVM.importInput) { oldValue, newValue in
                                     importVM.validateURL()
                                 }
