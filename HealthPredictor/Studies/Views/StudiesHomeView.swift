@@ -107,7 +107,12 @@ struct StudiesHomeView: View {
                 importVM: importVM,
                 showFileImporter: $showFileImporter,
                 selectedFileURL: $selectedFileURL,
-                onDismiss: { showSheet = false }
+                onDismiss: {
+                    showSheet = false
+                    selectedFileURL = nil
+                    importVM.importInput = ""
+                    importVM.errorMessage = ""
+                }
             )
         }
     }
