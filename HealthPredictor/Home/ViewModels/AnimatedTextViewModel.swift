@@ -7,7 +7,6 @@ class AnimatedTextViewModel: ObservableObject {
     private var currentIndex = 0
     private var timer: Timer?
 
-
     func configure(with text: String, chunkSize: Int = 4) {
         let sentences = TextChunker.sentences(from: text)
         allChunks = []
