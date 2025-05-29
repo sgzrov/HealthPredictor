@@ -11,7 +11,7 @@ import SwiftUI
 public struct ShakeEffect: GeometryEffect {
     public var shakes: CGFloat
     public var amplitude: CGFloat = 4
-    public var damping: CGFloat = 0.7
+    public var damping: CGFloat = 0.4
 
     public var animatableData: CGFloat {
         get { shakes }
