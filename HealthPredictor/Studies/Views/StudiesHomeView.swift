@@ -9,7 +9,7 @@ import SwiftUI
 
 struct StudiesHomeView: View {
 
-    @StateObject private var importVM = StudiesImportViewModel()
+    @StateObject private var importVM = ImportURLViewModel()
 
     @State private var searchText: String = ""
     @State private var showSheet: Bool = false
