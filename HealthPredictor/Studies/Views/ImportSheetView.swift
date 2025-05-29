@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct ImportSheetView: View {
-
-    @ObservedObject var importVM: StudiesImportViewModel
+    @ObservedObject var importVM: ImportURLViewModel
 
     @Binding var showFileImporter: Bool
     @Binding var selectedFileURL: URL?
@@ -40,7 +39,7 @@ struct ImportSheetView: View {
                     }
                 }
 
-                VStack(spacing: 20) {
+                VStack(spacing: 16) {
                     Text("📥")
                         .font(.system(size: 60))
                         .padding(.bottom, 4)
@@ -80,11 +79,18 @@ struct ImportSheetView: View {
                                 }
                                 .onChange(of: importVM.importInput) { oldValue, newValue in
                                     importVM.validateURL()
+                                    
+                                    if importVM.isFullyValidURL(),
+                                       let url = URL(string: newValue) {
+                                        Task {
+                                            await importVM.validateFileType(url: url)
+                                        }
+                                    }
                                 }
+                            
                             if !importVM.importInput.isEmpty {
                                 Button(action: {
-                                    importVM.importInput = ""
-                                    importVM.errorMessage = ""
+                                    importVM.clearInput()
                                 }) {
                                     Image(systemName: "xmark.circle.fill")
                                         .foregroundColor(.gray)
@@ -94,9 +100,6 @@ struct ImportSheetView: View {
                         .padding(10)
                         .background(Color(.secondarySystemFill))
                         .cornerRadius(12)
-                        
-                        TagView(tag: Tag(name: "Calories", color: .blue))
-                            .frame(maxWidth: .infinity, alignment: .leading)
 
                         if !importVM.errorMessage.isEmpty {
                             Text(importVM.errorMessage)
@@ -195,6 +198,8 @@ struct ImportSheetView: View {
                         .background(Color.accentColor)
                         .cornerRadius(14)
                 }
+                .disabled(importVM.isLoading || (!importVM.isPDF && !importVM.isHTML && selectedFileURL != nil))
+                .opacity(importVM.isLoading ? 0.5 : 1)
                 .padding(.horizontal, 8)
                 .padding(.bottom, 24)
             }
@@ -208,7 +213,7 @@ struct ImportSheetView: View {
 
 #Preview {
     ImportSheetView(
-        importVM: StudiesImportViewModel(),
+        importVM: ImportURLViewModel(),
         showFileImporter: .constant(false),
         selectedFileURL: .constant(nil),
         onDismiss: {}
