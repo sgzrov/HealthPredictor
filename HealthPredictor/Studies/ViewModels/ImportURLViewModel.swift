@@ -9,14 +9,14 @@ import Foundation
 
 @MainActor
 class ImportURLViewModel: ObservableObject {
-    
+
     @Published var importInput: String = ""
     @Published var errorMessage: String = ""
     @Published var isPDF: Bool = false
     @Published var isHTML: Bool = false
     @Published var isLoading: Bool = false
 
-    private let urlStringService = URLValidationService()
+    private let urlStringService = URLStringValidationService()
     private let urlExtensionService = URLExtensionValidationService()
 
     func validateURL() {
@@ -38,7 +38,7 @@ class ImportURLViewModel: ObservableObject {
         case .html:
             isHTML = true
         case .unknown:
-            errorMessage = result.error ?? "Could not determine file type"
+            errorMessage = result.error ?? "Invalid URL. Content could not be inferred."
         }
         print("Set errorMessage to: \(errorMessage)") // Debug print
         isLoading = false
@@ -47,7 +47,7 @@ class ImportURLViewModel: ObservableObject {
     func isFullyValidURL() -> Bool {
         return urlStringService.validateURL(importInput).isValid
     }
-    
+
     func clearInput() {
         importInput = ""
         errorMessage = ""
