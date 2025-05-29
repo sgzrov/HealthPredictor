@@ -72,14 +72,14 @@ struct ImportSheetView: View {
                                 .focused($isTextFieldFocused)
                                 .onChange(of: isTextFieldFocused) { oldValue, newValue in
                                     if newValue {
-                                        withAnimation(.easeOut(duration: 0.4)) {
+                                        withAnimation(.easeOut(duration: 0.3)) {
                                             shakeTrigger += 1
                                         }
                                     }
                                 }
                                 .onChange(of: importVM.importInput) { oldValue, newValue in
                                     importVM.validateURL()
-                                    
+
                                     if importVM.isFullyValidURL(),
                                        let url = URL(string: newValue) {
                                         Task {
@@ -87,7 +87,7 @@ struct ImportSheetView: View {
                                         }
                                     }
                                 }
-                            
+
                             if !importVM.importInput.isEmpty {
                                 Button(action: {
                                     importVM.clearInput()
@@ -189,17 +189,17 @@ struct ImportSheetView: View {
 
                 Button(action: {
                     // Import action
+                    onDismiss()
                 }) {
                     Text("Import Study")
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.accentColor)
+                        .background(importVM.isLoading || (importVM.importInput.isEmpty && selectedFileURL == nil) || (!importVM.isFullyValidURL() && selectedFileURL == nil) || !importVM.errorMessage.isEmpty ? Color.secondary.opacity(0.8) : Color.accentColor)
                         .cornerRadius(14)
                 }
-                .disabled(importVM.isLoading || (!importVM.isPDF && !importVM.isHTML && selectedFileURL != nil))
-                .opacity(importVM.isLoading ? 0.5 : 1)
+                .disabled(importVM.isLoading || (importVM.importInput.isEmpty && selectedFileURL == nil) || (!importVM.isFullyValidURL() && selectedFileURL == nil) || !importVM.errorMessage.isEmpty)
                 .padding(.horizontal, 8)
                 .padding(.bottom, 24)
             }
