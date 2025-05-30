@@ -7,7 +7,7 @@
 
 import Foundation
 
-class URLStringValidationService {
+class URLStringCheck {
     
     struct ValidationResult {
         let isValid: Bool
