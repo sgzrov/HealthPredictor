@@ -9,7 +9,7 @@ import Foundation
 import PDFKit
 import SwiftSoup
 
-class URLExtensionValidationService {
+class URLExtensionCheck {
 
     enum ContentType {
         case pdf
