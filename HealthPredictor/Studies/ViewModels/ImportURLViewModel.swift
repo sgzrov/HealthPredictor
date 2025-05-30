@@ -16,11 +16,11 @@ class ImportURLViewModel: ObservableObject {
     @Published var isHTML: Bool = false
     @Published var isLoading: Bool = false
 
-    private let urlStringService = URLStringValidationService()
-    private let urlExtensionService = URLExtensionValidationService()
+    private let urlStringCheck = URLStringCheck()
+    private let urlExtensionCheck = URLExtensionCheck()
 
     func validateURL() {
-        let result = urlStringService.validatePartialURL(importInput)
+        let result = urlStringCheck.validatePartialURL(importInput)
         errorMessage = result.errorMessage ?? ""
     }
 
@@ -30,7 +30,7 @@ class ImportURLViewModel: ObservableObject {
         isPDF = false
         isHTML = false
 
-        let result = await urlExtensionService.checkContentType(url: url)
+        let result = await urlExtensionCheck.checkContentType(url: url)
         print("Content check result: \(result.type), error: \(result.error ?? "none")") // Debug print
         switch result.type {
         case .pdf:
@@ -45,7 +45,7 @@ class ImportURLViewModel: ObservableObject {
     }
 
     func isFullyValidURL() -> Bool {
-        return urlStringService.validateURL(importInput).isValid
+        return urlStringCheck.validateURL(importInput).isValid
     }
 
     func clearInput() {
