@@ -9,7 +9,7 @@ import SwiftUI
 
 struct StudiesHomeView: View {
 
-    @StateObject private var importVM = ImportURLViewModel()
+    @StateObject private var importVM = TagExtractionViewModel()
 
     @State private var searchText: String = ""
     @State private var showSheet: Bool = false
@@ -36,10 +36,10 @@ struct StudiesHomeView: View {
                         ZStack {
                             Circle()
                                 .fill(Color(.secondarySystemFill))
-                                .frame(width: 24, height: 24)
+                                .frame(width: 30, height: 30)
                             Image(systemName: "plus")
                                 .resizable()
-                                .frame(width: 12, height: 12)
+                                .frame(width: 15, height: 15)
                                 .foregroundColor(Color(.systemGroupedBackground))
                         }
                     }
@@ -110,8 +110,7 @@ struct StudiesHomeView: View {
                 onDismiss: {
                     showSheet = false
                     selectedFileURL = nil
-                    importVM.importInput = ""
-                    importVM.errorMessage = ""
+                    importVM.clearInput()
                 }
             )
         }
