@@ -1,5 +1,5 @@
 //
-//  URLValidationServices.swift
+//  URLStringCheck.swift
 //  HealthPredictor
 //
 //  Created by Stephan  on 28.05.2025.
@@ -8,7 +8,7 @@
 import Foundation
 
 class URLStringCheck {
-    
+
     struct ValidationResult {
         let isValid: Bool
         let errorMessage: String?
