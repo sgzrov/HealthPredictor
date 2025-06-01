@@ -8,14 +8,10 @@
 import SwiftUI
 
 struct ImportSheetView: View {
-    @ObservedObject var importVM: ImportURLViewModel
+    @ObservedObject var importVM: TagExtractionViewModel
 
     @Binding var showFileImporter: Bool
     @Binding var selectedFileURL: URL?
-
-    @State private var shakeTrigger: CGFloat = 0
-
-    @FocusState private var isTextFieldFocused: Bool
 
     var onDismiss: () -> Void
 
@@ -25,24 +21,38 @@ struct ImportSheetView: View {
 
             VStack(spacing: 0) {
                 HStack {
+                    Button(action: {
+                        showFileImporter = true
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color(.secondarySystemFill))
+                                .frame(width: 36, height: 36)
+                            Image(systemName: "folder")
+                                .resizable()
+                                .frame(width: 19, height: 16)
+                                .foregroundColor(Color.accentColor)
+                        }
+                    }
                     Spacer()
                     Button(action: onDismiss) {
                         ZStack {
                             Circle()
                                 .fill(Color(.secondarySystemFill))
-                                .frame(width: 24, height: 24)
+                                .frame(width: 30, height: 30)
                             Image(systemName: "xmark")
                                 .resizable()
-                                .frame(width: 10, height: 10)
+                                .frame(width: 12, height: 12)
                                 .foregroundColor(Color(.systemGroupedBackground))
                         }
                     }
                 }
+                .padding(.top, 6)
 
-                VStack(spacing: 16) {
+                VStack {
                     Text("📥")
                         .font(.system(size: 60))
-                        .padding(.bottom, 4)
+                        .padding(.bottom, 8)
                     VStack {
                         Text("Import")
                             .font(.title)
@@ -51,11 +61,13 @@ struct ImportSheetView: View {
                             .font(.title)
                             .fontWeight(.bold)
                     }
-                    Text("Import studies via URL or document to see how their results correlate with your health data.")
+                    .padding(.bottom, 16)
+                    Text("Import studies to view how their results correlate with your health data.")
                         .font(.headline)
                         .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 58)
+                        .lineSpacing(2)
                 }
                 .padding(.bottom, 30)
 
@@ -64,30 +76,18 @@ struct ImportSheetView: View {
                         HStack {
                             Image(systemName: "link")
                                 .foregroundColor(Color(.tertiaryLabel))
-                                .modifier(ShakeEffect(shakes: shakeTrigger))
                             TextField("Paste URL here", text: $importVM.importInput)
                                 .autocapitalization(.none)
                                 .disableAutocorrection(true)
                                 .truncationMode(.middle)
-                                .focused($isTextFieldFocused)
-                                .onChange(of: isTextFieldFocused) { oldValue, newValue in
-                                    if newValue {
-                                        withAnimation(.easeOut(duration: 0.3)) {
-                                            shakeTrigger += 1
-                                        }
-                                    }
-                                }
                                 .onChange(of: importVM.importInput) { oldValue, newValue in
                                     importVM.validateURL()
-
-                                    if importVM.isFullyValidURL(),
-                                       let url = URL(string: newValue) {
+                                    if importVM.isFullyValidURL(), let url = URL(string: newValue) {
                                         Task {
                                             await importVM.validateFileType(url: url)
                                         }
                                     }
                                 }
-
                             if !importVM.importInput.isEmpty {
                                 Button(action: {
                                     importVM.clearInput()
@@ -168,21 +168,17 @@ struct ImportSheetView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                Button(action: {
-                    showFileImporter = true
-                }) {
-                    Text("Choose Files...")
-                        .font(.subheadline)
-                        .foregroundColor(.accentColor)
-                        .padding(.top, 10)
-                }
-                .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.pdf, .plainText, .rtf, .text, .data], allowsMultipleSelection: false) { result in
-                    switch result {
-                    case .success(let urls):
-                        selectedFileURL = urls.first
-                    case .failure:
-                        selectedFileURL = nil
+                if !importVM.topTags.isEmpty && importVM.errorMessage.isEmpty && importVM.isFullyValidURL() {
+                    HStack(spacing: 8) {
+                        ForEach(importVM.visibleTags) { tag in
+                            TagView(tag: tag)
+                                .transition(.scale.combined(with: .opacity))
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 12)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: importVM.visibleTags)
                 }
 
                 Spacer()
@@ -196,10 +192,26 @@ struct ImportSheetView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(importVM.isLoading || (importVM.importInput.isEmpty && selectedFileURL == nil) || (!importVM.isFullyValidURL() && selectedFileURL == nil) || !importVM.errorMessage.isEmpty ? Color.secondary.opacity(0.8) : Color.accentColor)
+                        .background(Color.accentColor)
                         .cornerRadius(14)
                 }
-                .disabled(importVM.isLoading || (importVM.importInput.isEmpty && selectedFileURL == nil) || (!importVM.isFullyValidURL() && selectedFileURL == nil) || !importVM.errorMessage.isEmpty)
+                .disabled(
+                    importVM.isLoading ||
+                    importVM.isExtractingTags ||
+                    importVM.visibleTags.count < 1 ||
+                    (importVM.importInput.isEmpty && selectedFileURL == nil) ||
+                    (!importVM.isFullyValidURL() && selectedFileURL == nil) ||
+                    !importVM.errorMessage.isEmpty
+                )
+                .opacity(
+                    importVM.isLoading ||
+                    importVM.isExtractingTags ||
+                    importVM.visibleTags.count < 1 ||
+                    (importVM.importInput.isEmpty && selectedFileURL == nil) ||
+                    (!importVM.isFullyValidURL() && selectedFileURL == nil) ||
+                    !importVM.errorMessage.isEmpty
+                    ? 0.5 : 1.0
+                )
                 .padding(.horizontal, 8)
                 .padding(.bottom, 24)
             }
@@ -208,12 +220,26 @@ struct ImportSheetView: View {
         }
         .presentationDetents([.large])
         .animation(.easeInOut(duration: 0.3), value: selectedFileURL)
+        .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.pdf, .plainText, .rtf, .text, .data], allowsMultipleSelection: false) { result in
+            importVM.clearTags()
+            switch result {
+            case .success(let urls):
+                if let fileURL = urls.first {
+                    selectedFileURL = fileURL
+                    Task {
+                        await importVM.validateFileType(url: fileURL)
+                    }
+                }
+            case .failure:
+                selectedFileURL = nil
+            }
+        }
     }
 }
 
 #Preview {
     ImportSheetView(
-        importVM: ImportURLViewModel(),
+        importVM: TagExtractionViewModel(),
         showFileImporter: .constant(false),
         selectedFileURL: .constant(nil),
         onDismiss: {}
