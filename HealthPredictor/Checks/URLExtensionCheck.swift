@@ -1,5 +1,5 @@
 //
-//  URLExtensionValidationService.swift
+//  URLExtensionCheck.swift
 //  HealthPredictor
 //
 //  Created by Stephan  on 28.05.2025.
@@ -24,31 +24,44 @@ class URLExtensionCheck {
 
     func checkContentType(url: URL) async -> ContentTypeResult {
         do {
-            let (data, response) = try await URLSession.shared.data(from: url)
+            let (data, response) = try await CloudflareCheck.shared.makeRequest(to: url)
 
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
+            guard let httpResponse = response as? HTTPURLResponse else {
                 return fail()
             }
 
             let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
 
-            if contentType.contains("application/pdf") {
-                return verifyPDF(data)
+            // Check for PDF first, regardless of Cloudflare status
+            if contentType.contains("application/pdf") || url.pathExtension.lowercased() == "pdf" {
+                return .init(type: .pdf, error: nil)
             }
 
-            if contentType.contains("text/html") || contentType.contains("application/xhtml+xml") {
-                return .init(type: .html, error: nil)
+            // Then check for Cloudflare protection
+            if CloudflareCheck.shared.isCloudflareProtected(response) {
+                return isHTMLContent(contentType, data: data)
             }
 
-            if isParsableHTML(data: data) {
-                return .init(type: .html, error: nil)
+            guard httpResponse.statusCode == 200 else {
+                return fail()
             }
 
-            return fail()
+            return isHTMLContent(contentType, data: data)
         } catch {
             return fail()
         }
+    }
+
+    private func isHTMLContent(_ contentType: String, data: Data) -> ContentTypeResult {
+        if contentType.contains("text/html") || contentType.contains("application/xhtml+xml") {
+            return .init(type: .html, error: nil)
+        }
+
+        if isParsableHTML(data: data) {
+            return .init(type: .html, error: nil)
+        }
+
+        return fail()
     }
 
     private func verifyPDF(_ data: Data) -> ContentTypeResult {
