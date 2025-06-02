@@ -2,7 +2,7 @@
 //  URLExtensionCheck.swift
 //  HealthPredictor
 //
-//  Created by Stephan  on 28.05.2025.
+//  Updated for meta-refresh redirect support
 //
 
 import Foundation
@@ -23,57 +23,84 @@ class URLExtensionCheck {
     }
 
     func checkContentType(url: URL) async -> ContentTypeResult {
+        print("Starting content type check for URL: \(url.absoluteString)")
+
         do {
             let (data, response) = try await CloudflareCheck.shared.makeRequest(to: url)
 
             guard let httpResponse = response as? HTTPURLResponse else {
+                print("Invalid HTTP response")
                 return fail()
             }
 
             let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type")?.lowercased() ?? ""
+            print("Received Content-Type: \(contentType)")
+            print("HTTP status code: \(httpResponse.statusCode)")
 
-            // Check for PDF first, regardless of Cloudflare status
             if contentType.contains("application/pdf") || url.pathExtension.lowercased() == "pdf" {
-                return .init(type: .pdf, error: nil)
+                print("Detected PDF by content-type or extension, attempting to load PDFDocument")
+                let pdfResult = verifyPDF(data)
+                if pdfResult.type == .pdf {
+                    print("PDFDocument successfully loaded")
+                    return pdfResult
+                } else {
+                    print("PDFDocument failed to initialize")
+                }
             }
 
-            // Then check for Cloudflare protection
-            if CloudflareCheck.shared.isCloudflareProtected(response) {
-                return isHTMLContent(contentType, data: data)
+            // Try meta refresh if HTML
+            if contentType.contains("text/html") || contentType.contains("application/xhtml+xml") {
+                if let redirectedURL = extractMetaRefreshRedirect(from: data, originalURL: url) {
+                    print("Found meta refresh redirect to: \(redirectedURL)")
+                    return await checkContentType(url: redirectedURL) // recursive follow
+                } else {
+                    print("No meta refresh redirect found, treating as HTML")
+                    return .init(type: .html, error: nil)
+                }
             }
 
-            guard httpResponse.statusCode == 200 else {
-                return fail()
-            }
-
-            return isHTMLContent(contentType, data: data)
+            return fail()
         } catch {
+            print("Error during content check: \(error)")
             return fail()
         }
     }
 
-    private func isHTMLContent(_ contentType: String, data: Data) -> ContentTypeResult {
-        if contentType.contains("text/html") || contentType.contains("application/xhtml+xml") {
-            return .init(type: .html, error: nil)
-        }
-
-        if isParsableHTML(data: data) {
-            return .init(type: .html, error: nil)
-        }
-
-        return fail()
-    }
-
     private func verifyPDF(_ data: Data) -> ContentTypeResult {
-        PDFDocument(data: data) != nil ? .init(type: .pdf, error: nil) : fail()
+        if let _ = PDFDocument(data: data) {
+            return .init(type: .pdf, error: nil)
+        } else {
+            return fail()
+        }
     }
 
-    private func isParsableHTML(data: Data) -> Bool {
-        guard let htmlString = String(data: data, encoding: .utf8) else { return false }
-        return (try? SwiftSoup.parse(htmlString)) != nil
+    private func extractMetaRefreshRedirect(from data: Data, originalURL: URL) -> URL? {
+        guard let html = String(data: data, encoding: .utf8) else {
+            print("Failed to decode HTML from data")
+            return nil
+        }
+
+        do {
+            let doc = try SwiftSoup.parse(html)
+            let meta = try doc.select("meta[http-equiv=refresh]").first()
+            if let content = try meta?.attr("content") {
+                print("Meta refresh content: \(content)")
+                if let range = content.range(of: "url=", options: .caseInsensitive) {
+                    let urlPart = content[range.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+                    let resolved = URL(string: urlPart, relativeTo: originalURL)?.absoluteURL
+                    return resolved
+                }
+            }
+        } catch {
+            print("Failed to parse meta refresh tag: \(error)")
+        }
+
+        return nil
     }
 
     private func fail() -> ContentTypeResult {
-        .init(type: .unknown, error: "Invalid URL. Content could not be inferred.")
+        print("Returning failure result")
+        return .init(type: .unknown, error: "Invalid URL. Content could not be inferred.")
     }
 }
+
