@@ -8,6 +8,7 @@
 import Foundation
 import NaturalLanguage
 import SwiftUI
+import PDFKit
 
 @MainActor
 class TagExtractionViewModel: ImportURLViewModel {
@@ -30,9 +31,8 @@ class TagExtractionViewModel: ImportURLViewModel {
     }
 
     private func extractTextFromHTML(_ htmlString: String) -> String {
-        // Simple HTML tag removal
         var text = htmlString
-            .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression, range: nil)
+            .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
             .replacingOccurrences(of: "&nbsp;", with: " ")
             .replacingOccurrences(of: "&amp;", with: "&")
             .replacingOccurrences(of: "&lt;", with: "<")
@@ -40,9 +40,7 @@ class TagExtractionViewModel: ImportURLViewModel {
             .replacingOccurrences(of: "&quot;", with: "\"")
             .replacingOccurrences(of: "&#39;", with: "'")
 
-        // Remove extra whitespace
         text = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.joined(separator: " ")
-
         return text
     }
 
@@ -52,24 +50,26 @@ class TagExtractionViewModel: ImportURLViewModel {
         visibleTags = []
 
         do {
-            let data: Data
-            if url.pathExtension.lowercased() == "pdf" {
-                // For PDFs, use direct URLSession
-                let (pdfData, _) = try await URLSession.shared.data(from: url)
-                data = pdfData
-            } else {
-                // For HTML content, use CloudflareCheck
-                let (htmlData, _) = try await CloudflareCheck.shared.makeRequest(to: url)
-                data = htmlData
-            }
+            let (data, _) = try await CloudflareCheck.shared.makeRequest(to: url)
+            var text = ""
 
-            guard let htmlString = String(data: data, encoding: .utf8) else {
-                print("Failed to decode content")
-                isExtractingTags = false
-                return
+            if isPDF {
+                if let pdfDoc = PDFDocument(data: data) {
+                    text = (0..<pdfDoc.pageCount).compactMap { pdfDoc.page(at: $0)?.string }.joined(separator: " ")
+                } else {
+                    print("Failed to load PDFDocument")
+                    isExtractingTags = false
+                    return
+                }
+            } else if isHTML {
+                if let htmlString = String(data: data, encoding: .utf8) {
+                    text = extractTextFromHTML(htmlString)
+                } else {
+                    print("Failed to decode HTML")
+                    isExtractingTags = false
+                    return
+                }
             }
-
-            let text = extractTextFromHTML(htmlString)
 
             let tagger = NLTagger(tagSchemes: [.lexicalClass, .lemma])
             tagger.string = text
@@ -79,10 +79,9 @@ class TagExtractionViewModel: ImportURLViewModel {
             tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .word, scheme: .lexicalClass) { tag, tokenRange in
                 if tag == .noun {
                     if let lemma = tagger.tag(at: tokenRange.lowerBound, unit: .word, scheme: .lemma).0?.rawValue {
-                        let normalizedWord = lemma.lowercased()
-                        if Tag.healthKeywords.contains(where: { $0.name.lowercased() == normalizedWord }) {
-                            print("Matched tag: \(normalizedWord)")
-                            tagCounts[normalizedWord.capitalized, default: 0] += 1
+                        let normalized = lemma.lowercased()
+                        if Tag.healthKeywords.contains(where: { $0.name.lowercased() == normalized }) {
+                            tagCounts[normalized.capitalized, default: 0] += 1
                         }
                     }
                 }
@@ -94,7 +93,7 @@ class TagExtractionViewModel: ImportURLViewModel {
                 .compactMap { name, _ in
                     Tag.healthKeywords.first { $0.name.lowercased() == name.lowercased() }
                 }
-            topTags = Array(matched.prefix(4)) // Ensure 4 tags are shown (if exist in source)
+            topTags = Array(matched.prefix(4))
 
             for tag in topTags {
                 try? await Task.sleep(nanoseconds: UInt64(0.08 * 1_000_000_000))
@@ -104,11 +103,6 @@ class TagExtractionViewModel: ImportURLViewModel {
 
         } catch {
             print("Error extracting tags: \(error)")
-            if let error = error as NSError? {
-                if error.code == 403 {
-                    print("Access denied - Cloudflare protection detected")
-                }
-            }
         }
 
         isExtractingTags = false
@@ -124,3 +118,4 @@ class TagExtractionViewModel: ImportURLViewModel {
         clearTags()
     }
 }
+
