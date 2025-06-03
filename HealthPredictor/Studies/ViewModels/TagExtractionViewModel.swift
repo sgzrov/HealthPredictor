@@ -50,62 +50,83 @@ class TagExtractionViewModel: ImportURLViewModel {
         visibleTags = []
 
         do {
-            let (data, _) = try await CloudflareCheck.shared.makeRequest(to: url)
-            var text = ""
-
-            if isPDF {
-                if let pdfDoc = PDFDocument(data: data) {
-                    text = (0..<pdfDoc.pageCount).compactMap { pdfDoc.page(at: $0)?.string }.joined(separator: " ")
-                } else {
-                    print("Failed to load PDFDocument")
-                    isExtractingTags = false
-                    return
-                }
-            } else if isHTML {
-                if let htmlString = String(data: data, encoding: .utf8) {
-                    text = extractTextFromHTML(htmlString)
-                } else {
-                    print("Failed to decode HTML")
-                    isExtractingTags = false
-                    return
-                }
-            }
-
-            let tagger = NLTagger(tagSchemes: [.lexicalClass, .lemma])
-            tagger.string = text
-
-            var tagCounts: [String: Int] = [:]
-
-            tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .word, scheme: .lexicalClass) { tag, tokenRange in
-                if tag == .noun {
-                    if let lemma = tagger.tag(at: tokenRange.lowerBound, unit: .word, scheme: .lemma).0?.rawValue {
-                        let normalized = lemma.lowercased()
-                        if Tag.healthKeywords.contains(where: { $0.name.lowercased() == normalized }) {
-                            tagCounts[normalized.capitalized, default: 0] += 1
-                        }
-                    }
-                }
-                return true
-            }
-
-            let matched = tagCounts
-                .sorted { $0.value > $1.value }
-                .compactMap { name, _ in
-                    Tag.healthKeywords.first { $0.name.lowercased() == name.lowercased() }
-                }
-            topTags = Array(matched.prefix(4))
-
-            for tag in topTags {
-                try? await Task.sleep(nanoseconds: UInt64(0.08 * 1_000_000_000))
-                if Task.isCancelled { return }
-                visibleTags.append(Tag(name: tag.name, color: tag.color))
-            }
-
+            let data = try await fetchData(for: url)
+            let text = extractText(from: data, isPDF: isPDF, isHTML: isHTML)
+            let tags = extractHealthTags(from: text)
+            await updateVisibleTags(with: tags)
         } catch {
-            print("Error extracting tags: \(error)")
+            print("Error extracting tags: \(error)") // Debug print
         }
 
         isExtractingTags = false
+    }
+
+    private func fetchData(for url: URL) async throws -> Data {
+        if url.isFileURL {
+            return try Data(contentsOf: url)
+        } else {
+            let (fetchedData, _) = try await CloudflareCheck.shared.makeRequest(to: url)
+            return fetchedData
+        }
+    }
+
+    private func extractText(from data: Data, isPDF: Bool, isHTML: Bool) -> String {
+        if isPDF {
+            if let pdfDoc = PDFDocument(data: data) {
+                return (0..<pdfDoc.pageCount).compactMap { pdfDoc.page(at: $0)?.string }.joined(separator: " ")
+            } else {
+                print("Failed to load PDFDocument.") // Debug print
+                return ""
+            }
+        } else if isHTML {
+            if let htmlString = String(data: data, encoding: .utf8) {
+                return extractTextFromHTML(htmlString)
+            } else {
+                print("Failed to decode HTML") // Debug print
+                return ""
+            }
+        }
+        return ""
+    }
+
+    private func extractHealthTags(from text: String) -> [Tag] {
+        let tagger = NLTagger(tagSchemes: [.lexicalClass, .lemma])
+        tagger.string = text
+
+        var tagCounts: [String: Int] = [:]
+
+        tagger.enumerateTags(in: text.startIndex..<text.endIndex, unit: .word, scheme: .lexicalClass) { tag, tokenRange in
+            if tag == .noun {
+                if let lemma = tagger.tag(at: tokenRange.lowerBound, unit: .word, scheme: .lemma).0?.rawValue {
+                    let normalized = lemma.lowercased()
+                    if Tag.healthKeywords.contains(where: { $0.name.lowercased() == normalized }) {
+                        print("Matched health keyword: \(normalized) at range: \(tokenRange)") // Debug print
+                        tagCounts[normalized.capitalized, default: 0] += 1
+                    }
+                }
+            }
+            return true
+        }
+
+        let matched = tagCounts.sorted { $0.value > $1.value }
+            .compactMap { name, _ in
+                let tag = Tag.healthKeywords.first { $0.name.lowercased() == name.lowercased() }
+                if let tag = tag {
+                    print("Selected tag for UI: \(tag.name)") // Debug print
+                }
+                return tag
+            }
+
+        return Array(matched.prefix(4))
+    }
+
+    private func updateVisibleTags(with tags: [Tag]) async {
+        topTags = tags
+        for tag in tags {
+            try? await Task.sleep(nanoseconds: UInt64(0.08 * 1_000_000_000))
+            if Task.isCancelled { return }
+            visibleTags.append(Tag(name: tag.name, color: tag.color))
+        }
     }
 
     func clearTags() {
