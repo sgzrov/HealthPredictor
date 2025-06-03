@@ -37,6 +37,9 @@ class ImportURLViewModel: ObservableObject {
             isPDF = true
         case .html:
             isHTML = true
+            if url.pathExtension.lowercased() == "pdf" {
+                errorMessage = result.error ?? "Could not access PDF. Try uploading file from Files."
+            }
         case .unknown:
             errorMessage = result.error ?? "Invalid URL. Content could not be inferred."
         }
