@@ -67,7 +67,6 @@ struct ImportSheetView: View {
                         .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 58)
-                        .lineSpacing(2)
                 }
                 .padding(.bottom, 30)
 
@@ -168,7 +167,7 @@ struct ImportSheetView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                if !importVM.topTags.isEmpty && importVM.errorMessage.isEmpty && importVM.isFullyValidURL() {
+                if !importVM.topTags.isEmpty && importVM.errorMessage.isEmpty && (importVM.isFullyValidURL() || selectedFileURL != nil) {
                     HStack(spacing: 8) {
                         ForEach(importVM.visibleTags) { tag in
                             TagView(tag: tag)
