@@ -23,7 +23,6 @@ class URLExtensionCheck {
     }
 
     func checkContentType(url: URL) async -> ContentTypeResult {
-        
         if url.isFileURL {
             let data: Data
             
