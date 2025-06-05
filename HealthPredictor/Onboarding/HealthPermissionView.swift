@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct HealthPermissionView: View {
-    let healthStore = HealthStore()
+    let healthStore = HealthStoreService()
     
     var body: some View {
         VStack(spacing: 20) {
