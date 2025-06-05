@@ -55,15 +55,6 @@ class CloudflareCheck {
             throw NSError(domain: "CloudflareCheck", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid response type."])
         }
 
-        // Handle redirects
-        if httpResponse.statusCode == 301 || httpResponse.statusCode == 302 {
-            if let location = httpResponse.value(forHTTPHeaderField: "Location"),
-               let redirectURL = URL(string: location) {
-                print("Following redirect to: \(redirectURL)")
-                return try await makeRequest(to: redirectURL)
-            }
-        }
-
         if httpResponse.statusCode == 403 {
             throw NSError(domain: "CloudflareCheck", code: 403, userInfo: [NSLocalizedDescriptionKey: "Access denied - Cloudflare protection detected."])
         }
