@@ -9,7 +9,7 @@ import Foundation
 
 class AIService {
 
-    private static let apiKey = "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"
+    private static let apiKey = Bundle.main.infoDictionary?["OPENAI_API_KEY"] as? String ?? ""
     private static let baseURL = "https://api.openai.com/v1/chat/completions"
 
     func sendChat(messages: [[String: String]], model: String = "gpt-4o", temperature: Double = 0.5, maxTokens: Int = 150) async throws -> String {
