@@ -21,7 +21,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		04B33E522DA1F48800ACC4CA /* Exceptions for "HealthPredictor" folder in "HealthPredictor" target */ = {
+		043DB8432DF4D37700AFD667 /* Exceptions for "HealthPredictor" folder in "HealthPredictor" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -34,7 +34,7 @@
 		04B33E382DA1F48800ACC4CA /* HealthPredictor */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				04B33E522DA1F48800ACC4CA /* Exceptions for "HealthPredictor" folder in "HealthPredictor" target */,
+				043DB8432DF4D37700AFD667 /* Exceptions for "HealthPredictor" folder in "HealthPredictor" target */,
 			);
 			path = HealthPredictor;
 			sourceTree = "<group>";
