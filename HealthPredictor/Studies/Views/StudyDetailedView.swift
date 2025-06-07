@@ -8,11 +8,23 @@
 import SwiftUI
 
 struct StudyDetailedView: View {
+    let study: Study
+
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Summary:")
+                .font(.headline)
+            Text(study.summary)
+                .font(.body)
+        }
+        .padding()
     }
 }
 
 #Preview {
-    StudyDetailedView()
+    StudyDetailedView(study: Study(
+        title: "Sample Study",
+        summary: "This is a sample study summary.",
+        sourceURL: URL(string: "https://example.com")!
+    ))
 }
