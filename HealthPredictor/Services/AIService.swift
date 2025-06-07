@@ -9,7 +9,18 @@ import Foundation
 
 class AIService {
 
-    private static let apiKey = Bundle.main.infoDictionary?["OPENAI_API_KEY"] as? String ?? ""
+    private static let apiKey: String = {
+        guard
+            let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
+            let data = try? Data(contentsOf: url),
+            let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
+            let dict = plist as? [String: Any],
+            let key = dict["OPENAI_API_KEY"] as? String
+        else {
+            fatalError("OpenAI API key missing in Secrets.plist.")
+        }
+        return key
+    }()
     private static let baseURL = "https://api.openai.com/v1/chat/completions"
 
     func sendChat(messages: [[String: String]], model: String = "gpt-4o", temperature: Double = 0.5, maxTokens: Int = 150) async throws -> String {
