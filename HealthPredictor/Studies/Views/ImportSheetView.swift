@@ -8,12 +8,16 @@
 import SwiftUI
 
 struct ImportSheetView: View {
+
     @ObservedObject var importVM: TagExtractionViewModel
+
+    @StateObject private var summaryVM = SummaryViewModel()
 
     @Binding var showFileImporter: Bool
     @Binding var selectedFileURL: URL?
 
     var onDismiss: () -> Void
+    var onImport: (Study) -> Void = { _ in }
 
     var body: some View {
         ZStack {
@@ -183,8 +187,20 @@ struct ImportSheetView: View {
                 Spacer()
 
                 Button(action: {
-                    // Import action
-                    onDismiss()
+                    Task {
+                        let url = selectedFileURL ?? URL(string: importVM.importInput)!
+                        await summaryVM.summarizeStudy(from: url)
+
+                        if let summary = summaryVM.summarizedText, !summary.isEmpty {
+                            let study = Study(
+                                title: url.lastPathComponent,
+                                summary: summary,
+                                sourceURL: url
+                            )
+                            onImport(study)
+                            onDismiss()
+                        }
+                    }
                 }) {
                     Text("Import Study")
                         .font(.headline)
@@ -200,7 +216,8 @@ struct ImportSheetView: View {
                     importVM.visibleTags.count < 1 ||
                     (importVM.importInput.isEmpty && selectedFileURL == nil) ||
                     (!importVM.isFullyValidURL() && selectedFileURL == nil) ||
-                    !importVM.errorMessage.isEmpty
+                    !importVM.errorMessage.isEmpty ||
+                    summaryVM.isSummarizing
                 )
                 .opacity(
                     importVM.isLoading ||
@@ -208,7 +225,8 @@ struct ImportSheetView: View {
                     importVM.visibleTags.count < 1 ||
                     (importVM.importInput.isEmpty && selectedFileURL == nil) ||
                     (!importVM.isFullyValidURL() && selectedFileURL == nil) ||
-                    !importVM.errorMessage.isEmpty
+                    !importVM.errorMessage.isEmpty ||
+                    summaryVM.isSummarizing
                     ? 0.5 : 1.0
                 )
                 .padding(.horizontal, 8)
@@ -241,6 +259,7 @@ struct ImportSheetView: View {
         importVM: TagExtractionViewModel(),
         showFileImporter: .constant(false),
         selectedFileURL: .constant(nil),
-        onDismiss: {}
+        onDismiss: {},
+        onImport: { _ in }
     )
 }
