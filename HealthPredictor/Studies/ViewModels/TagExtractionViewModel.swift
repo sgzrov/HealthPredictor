@@ -61,7 +61,7 @@ class TagExtractionViewModel: ImportURLViewModel {
         isExtractingTags = false
     }
 
-    private func fetchData(for url: URL) async throws -> Data {
+    func fetchData(for url: URL) async throws -> Data {
         if url.isFileURL {
             return try Data(contentsOf: url)
         } else {
@@ -70,7 +70,7 @@ class TagExtractionViewModel: ImportURLViewModel {
         }
     }
 
-    private func extractText(from data: Data, isPDF: Bool, isHTML: Bool) -> String {
+    func extractText(from data: Data, isPDF: Bool, isHTML: Bool) -> String {
         if isPDF {
             if let pdfDoc = PDFDocument(data: data) {
                 return (0..<pdfDoc.pageCount).compactMap { pdfDoc.page(at: $0)?.string }.joined(separator: " ")
