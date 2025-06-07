@@ -1,5 +1,5 @@
 //
-//  HealthKitService.swift
+//  HealthStoreService.swift
 //  HealthPredictor
 //
 //  Created by Stephan  on 07.06.2025.

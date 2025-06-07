@@ -14,7 +14,7 @@ class SummaryViewModel: TagExtractionViewModel {
     @Published var summarizedText: String?
     @Published var isSummarizing = false
 
-    private let openAIService = AIService()
+    private let openAIService = OpenAIService()
 
     func summarizeStudy(from url: URL) async {
         isSummarizing = true
