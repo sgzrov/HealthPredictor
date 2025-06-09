@@ -15,7 +15,7 @@ struct StudiesHomeView: View {
     @State private var showSheet: Bool = false
     @State private var showFileImporter: Bool = false
     @State private var selectedFileURL: URL?
-    @State private var currentStudy: Study = Study(title: "Test Study", summary: "This is a test study for development purposes.", sourceURL: URL(string: "https://example.com")!)
+    @State private var currentStudy: Study = Study(title: "Test Study", summary: "This is a test study for development purposes.", personalizedInsight: "This is a test insight", sourceURL: URL(string: "https://example.com")!)
 
     var body: some View {
         NavigationStack {
