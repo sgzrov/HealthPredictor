@@ -12,10 +12,13 @@ struct StudyDetailedView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Summary:")
+            Text("Summary: ")
                 .font(.headline)
             Text(study.summary)
                 .font(.body)
+            Text("Outcome: ")
+                .font(.headline)
+            Text(study.personalizedInsight)
         }
         .padding()
     }
@@ -25,6 +28,7 @@ struct StudyDetailedView: View {
     StudyDetailedView(study: Study(
         title: "Sample Study",
         summary: "This is a sample study summary.",
+        personalizedInsight: "This is a sample personalized insight.",
         sourceURL: URL(string: "https://example.com")!
     ))
 }
