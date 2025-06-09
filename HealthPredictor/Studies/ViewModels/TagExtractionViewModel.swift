@@ -125,7 +125,7 @@ class TagExtractionViewModel: ImportURLViewModel {
         for tag in tags {
             try? await Task.sleep(nanoseconds: UInt64(0.08 * 1_000_000_000))
             if Task.isCancelled { return }
-            visibleTags.append(Tag(name: tag.name, color: tag.color))
+            visibleTags.append(Tag(name: tag.name, color: tag.color, subtags: tag.subtags))
         }
     }
 
