@@ -12,6 +12,7 @@ struct ImportSheetView: View {
     @ObservedObject var importVM: TagExtractionViewModel
 
     @StateObject private var summaryVM = SummaryViewModel()
+    @StateObject private var outcomeVM = OutcomeViewModel()
 
     @Binding var showFileImporter: Bool
     @Binding var selectedFileURL: URL?
@@ -190,11 +191,20 @@ struct ImportSheetView: View {
                     Task {
                         let url = selectedFileURL ?? URL(string: importVM.importInput)!
                         await summaryVM.summarizeStudy(from: url)
+                        
+                        let subtags = importVM.visibleTags.flatMap { $0.subtags }
+                        let fetcher = RelevantHealthDataFetcher()
+                        let metrics = await fetcher.fetchMetrics(for: subtags)
+                        
+                        if let text = summaryVM.extractedText {
+                            await outcomeVM.generateOutcome(from: text, using: metrics)
+                        }
 
-                        if let summary = summaryVM.summarizedText, !summary.isEmpty {
+                        if let summary = summaryVM.summarizedText, let outcome = outcomeVM.outcomeText, !summary.isEmpty, !outcome.isEmpty {
                             let study = Study(
                                 title: url.lastPathComponent,
                                 summary: summary,
+                                personalizedInsight: outcome,
                                 sourceURL: url
                             )
                             onImport(study)
