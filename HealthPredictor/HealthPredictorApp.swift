@@ -11,6 +11,13 @@ import Firebase
 @main
 struct HealthPredictorApp: App {
     init() {
+        HealthStoreService().requestAuthorization { success, error in
+            if success {
+                print("✅ HealthKit authorized")
+            } else {
+                print("❌ HealthKit authorization failed: \(error?.localizedDescription ?? "unknown error")")
+            }
+        }
         FirebaseApp.configure()
     }
 
