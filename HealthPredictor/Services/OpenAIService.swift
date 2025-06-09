@@ -43,8 +43,13 @@ class OpenAIService {
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw OpenAIError.invalidResponse
+        }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            let debugBody = String(data: data, encoding: .utf8) ?? "n/a"
+            print("OpenAI API Error \(httpResponse.statusCode): \(debugBody)")
             throw OpenAIError.invalidResponse
         }
 
