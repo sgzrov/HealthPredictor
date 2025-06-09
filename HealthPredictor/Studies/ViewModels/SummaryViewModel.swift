@@ -12,6 +12,7 @@ import SwiftUI
 class SummaryViewModel: TagExtractionViewModel {
 
     @Published var summarizedText: String?
+    @Published var extractedText: String?
     @Published var isSummarizing = false
 
     private let openAIService = OpenAIService()
@@ -26,6 +27,8 @@ class SummaryViewModel: TagExtractionViewModel {
             await validateFileType(url: url)
 
             let text = extractText(from: data, isPDF: isPDF, isHTML: isHTML)
+            self.extractedText = text
+            print("Extracted text length: \(text.count)")
 
             guard !text.isEmpty else {
                 print("No text extracted from file.")
