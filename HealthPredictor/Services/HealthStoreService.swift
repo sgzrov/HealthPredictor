@@ -9,6 +9,7 @@ import Foundation
 import HealthKit
 
 class HealthStoreService {
+
     let healthStore = HKHealthStore()
 
     func requestAuthorization(completion: @escaping (Bool, Error?) -> Void) {
@@ -17,15 +18,37 @@ class HealthStoreService {
             return
         }
 
-        let stepCount = HKObjectType.quantityType(forIdentifier: .stepCount)!
-        let heartRate = HKObjectType.quantityType(forIdentifier: .heartRate)!
-        let activeEnergy = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
-        let sleep = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
+        let quantityTypes: [HKQuantityTypeIdentifier] = [
+            .heartRate,
+            .restingHeartRate,
+            .walkingHeartRateAverage,
+            .heartRateVariabilitySDNN,
+            .stepCount,
+            .walkingSpeed,
+            .vo2Max,
+            .activeEnergyBurned,
+            .dietaryWater,
+            .bodyMass,
+            .bodyMassIndex,
+            .bloodGlucose,
+            .oxygenSaturation,
+            .bloodPressureSystolic,
+            .bloodPressureDiastolic
+        ]
 
-        let readTypes: Set = [stepCount, heartRate, activeEnergy, sleep]
+        let categoryTypes: [HKCategoryTypeIdentifier] = [
+            .sleepAnalysis,
+            .mindfulSession
+        ]
+
+        let readTypes: Set<HKObjectType> = Set(
+            quantityTypes.compactMap { HKObjectType.quantityType(forIdentifier: $0) } +
+            categoryTypes.compactMap { HKObjectType.categoryType(forIdentifier: $0) }
+        )
 
         healthStore.requestAuthorization(toShare: [], read: readTypes) { success, error in
             completion(success, error)
         }
     }
+
 }
