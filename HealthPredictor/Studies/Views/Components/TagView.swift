@@ -35,5 +35,5 @@ struct TagView: View {
 }
 
 #Preview {
-    TagView(tag: Tag(name: "Sleep", color: .blue))
+    TagView(tag: Tag(name: "Sleep", color: .blue, subtags: []))
 }
