@@ -6,3 +6,8 @@
 //
 
 import Foundation
+
+struct HealthMetricHistory: Codable {
+    let daily: [Double]
+    let monthly: [Double]
+}
