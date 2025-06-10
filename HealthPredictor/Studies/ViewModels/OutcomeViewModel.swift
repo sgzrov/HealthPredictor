@@ -10,7 +10,7 @@ import SwiftUI
 
 @MainActor
 class OutcomeViewModel: ObservableObject {
-    
+
     @Published var isGenerating = false
     @Published var outcomeText: String?
     @Published var errorMessage: String?
@@ -27,7 +27,7 @@ class OutcomeViewModel: ObservableObject {
 
         // Build prompt
         let messages: [[String: String]] = [
-            ["role": "system","content": """
+            ["role": "system", "content": """
                 You are a health assistant that compares scientific research studies to an individual's personal health data and provides medically reasonable conclusions. Be specific and relevant.
                 """],
             ["role": "user", "content": """
@@ -39,7 +39,7 @@ class OutcomeViewModel: ObservableObject {
 
                 \(formattedMetrics)
 
-                Based on this, explain how the study’s findings apply to the user and provide a clear, personalized conclusion.
+                Based on this, explain how the study's findings apply to the user and provide a clear, personalized conclusion.
                 """]
         ]
 
