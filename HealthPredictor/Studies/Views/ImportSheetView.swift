@@ -191,11 +191,11 @@ struct ImportSheetView: View {
                     Task {
                         let url = selectedFileURL ?? URL(string: importVM.importInput)!
                         await summaryVM.summarizeStudy(from: url)
-                        
+
                         let subtags = importVM.visibleTags.flatMap { $0.subtags }
                         let fetcher = RelevantHealthDataFetcher()
-                        let metrics = await fetcher.fetchMetrics(for: subtags)
-                        
+                        let metrics = await fetcher.fetchMetricHistories(for: subtags)
+
                         if let text = summaryVM.extractedText {
                             await outcomeVM.generateOutcome(from: text, using: metrics)
                         }
