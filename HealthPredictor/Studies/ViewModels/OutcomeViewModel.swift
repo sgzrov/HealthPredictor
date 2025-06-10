@@ -17,13 +17,16 @@ class OutcomeViewModel: ObservableObject {
 
     private let openAIService = OpenAIService()
 
-    func generateOutcome(from studyText: String, using healthMetrics: [String: String]) async {
+    func generateOutcome(from studyText: String, using healthMetrics: [String: HealthMetricHistory]) async {
         isGenerating = true
         outcomeText = nil
         errorMessage = nil
 
-        // Format health data as bullet points
-        let formattedMetrics = healthMetrics.map { "- \($0.key): \($0.value)" }.joined(separator: "\n")
+        let formattedMetrics = healthMetrics.map { key, history in
+            let daily = history.daily.map { String(format: "%.1f", $0) }.joined(separator: ", ")
+            let monthly = history.monthly.map { String(format: "%.1f", $0) }.joined(separator: ", ")
+            return "- \(key):\n    Daily: [\(daily)]\n    Monthly: [\(monthly)]"
+        }.joined(separator: "\n")
 
         // Build prompt
         let messages: [[String: String]] = [
