@@ -1,5 +1,5 @@
 {
-  "originHash" : "6dccb8da46feb5286bf93ad3bf643265baba02a3ca0e363ba5056507b11a045a",
+  "originHash" : "735e2605559da622006f6d774feeaed12726d297c47982a01bb130b380c01648",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -125,6 +125,15 @@
       "state" : {
         "revision" : "bba848db50462894e7fc0891d018dfecad4ef11e",
         "version" : "2.8.7"
+      }
+    },
+    {
+      "identity" : "tiktoken",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/aespinilla/Tiktoken",
+      "state" : {
+        "branch" : "main",
+        "revision" : "4ad6460448278f7a28f1e4ee2723500369f20acb"
       }
     }
   ],
