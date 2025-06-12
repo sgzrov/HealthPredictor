@@ -34,11 +34,6 @@ struct OpenAIResponse: Codable {
     }
 }
 
-struct HealthMetricHistoryJSON: Codable {
-    let daily: [Double]
-    let monthly: [Double]
-}
-
 enum OpenAIError: Error {
     case invalidURL
     case invalidResponse
