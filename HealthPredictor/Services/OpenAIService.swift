@@ -7,10 +7,47 @@
 
 import Foundation
 
+struct Message: Codable {
+    let role: String
+    let content: String
+}
+
+struct OpenAIRequest: Codable {
+    let model: String
+    let messages: [Message]
+    let temperature: Double
+    let maxTokens: Int
+
+    enum CodingKeys: String, CodingKey {
+        case model
+        case messages
+        case temperature
+        case maxTokens = "max_tokens"
+    }
+}
+
+struct OpenAIResponse: Codable {
+    let choices: [Choice]
+
+    struct Choice: Codable {
+        let message: Message
+    }
+}
+
+struct HealthMetricHistoryJSON: Codable {
+    let daily: [Double]
+    let monthly: [Double]
+}
+
+enum OpenAIError: Error {
+    case invalidURL
+    case invalidResponse
+    case decodingError
+}
+
 class OpenAIService {
 
-    private static let apiKey: String = {
-        guard
+    private static let apiKey: String = { guard
             let url = Bundle.main.url(forResource: "Secrets", withExtension: "plist"),
             let data = try? Data(contentsOf: url),
             let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil),
@@ -19,29 +56,21 @@ class OpenAIService {
         else {
             fatalError("OpenAI API key missing in Secrets.plist.")
         }
-        return key
-    }()
+        return key }()
     private static let baseURL = "https://api.openai.com/v1/chat/completions"
 
-    func sendChat(messages: [[String: String]], model: String = "gpt-4o", temperature: Double = 0.5, maxTokens: Int = 150) async throws -> String {
-        let requestBody: [String: Any] = [
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": maxTokens
-        ]
-
+    func sendChat(request: OpenAIRequest) async throws -> String {
         guard let url = URL(string: Self.baseURL) else {
             throw OpenAIError.invalidURL
         }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(Self.apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("Bearer \(Self.apiKey)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = try JSONEncoder().encode(request)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw OpenAIError.invalidResponse
@@ -55,23 +84,5 @@ class OpenAIService {
 
         let result = try JSONDecoder().decode(OpenAIResponse.self, from: data)
         return result.choices.first?.message.content ?? ""
-    }
-}
-
-enum OpenAIError: Error {
-    case invalidURL
-    case invalidResponse
-    case decodingError
-}
-
-struct OpenAIResponse: Codable {
-    let choices: [Choice]
-
-    struct Choice: Codable {
-        let message: Message
-    }
-
-    struct Message: Codable {
-        let content: String
     }
 }
