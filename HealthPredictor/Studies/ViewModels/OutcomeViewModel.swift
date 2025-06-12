@@ -23,7 +23,7 @@ class OutcomeViewModel: ObservableObject {
         errorMessage = nil
 
         let healthMetricsJSON = healthMetrics.mapValues { history in
-            HealthMetricHistoryJSON(daily: history.daily, monthly: history.monthly)
+            HealthMetricHistory(daily: history.daily, monthly: history.monthly)
         }
 
         guard let healthMetricsData = try? JSONEncoder().encode(healthMetricsJSON),
@@ -49,7 +49,7 @@ class OutcomeViewModel: ObservableObject {
             messages: [
                 Message(
                     role: "system",
-                    content: "You are a health assistant that compares the findings of scientific studies to an individual's personal health data. If there's a link between the findings and a health metric(s), describe what this means for the user and what he must expect. Return 3 sentences and maintain flow thoughout the response. Keep the language accessible, but use techincal vocabularly where needed."
+                    content: "You are a health assistant that compares the findings of scientific studies to an individual's personal health data. If there's a link between the findings and a health metric(s), describe what this means for the user and what he must expect. Return 3 sentences and maintain flow thoughout the response. Keep the language accessible, but use techincal vocabularly where needed. Do not return me a summary of the study and do specifically what I asked for."
                 ),
                 Message(role: "user", content: userMessageString)
             ],
