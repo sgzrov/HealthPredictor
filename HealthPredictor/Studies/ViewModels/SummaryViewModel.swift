@@ -36,22 +36,22 @@ class SummaryViewModel: TagExtractionViewModel {
                 return
             }
 
-            // Prompt is built here
-            let messages = [
-                ["role": "system", "content": "You are a medical research assistant that creates concise and accurate summaries of medical studies."],
-                ["role": "user", "content": """
-                Please summarize this scientific article in 3 well-written sentences. The first should give a clear overview of the study. The second should explain the most important findings and observed outcomes, using technical but accessible language. The third should add any additional insight, such as correlations, predictions, or notes on the control group if applicable. Avoid oversimplifying and generalizing.
+            let request = OpenAIRequest(
+                model: "gpt-4.5-preview",
+                messages: [
+                    Message(
+                        role: "system",
+                        content: "You are a health assistant that creates concise and accurate 3-sentence summaries of medical studies. Do not include obvious points/conclusions, dive deeper. Use accessible language."
+                    )
+                ],
+                temperature: 0.7,
+                maxTokens: 130
+            )
 
-                Text:
-                \(text)
-                """
-                ]
-            ]
-
-            let summary = try await openAIService.sendChat(messages: messages)
+            let summary = try await openAIService.sendChat(request: request)
             self.summarizedText = summary
         } catch {
-            print("❌ Failed to summarize: \(error)")
+            print("Failed to summarize: \(error).")
         }
 
         isSummarizing = false
