@@ -11,16 +11,17 @@ struct StudyDetailedView: View {
     let study: Study
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Summary: ")
-                .font(.headline)
-            Text(study.summary)
-                .font(.body)
-            Text("Outcome: ")
-                .font(.headline)
-            Text(study.personalizedInsight)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Summary: ")
+                    .font(.headline)
+                Text(study.summary)
+                Text("Outcome: ")
+                    .font(.headline)
+                Text(study.personalizedInsight)
+            }
+            .padding()
         }
-        .padding()
     }
 }
 
