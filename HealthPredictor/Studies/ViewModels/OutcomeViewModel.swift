@@ -45,7 +45,7 @@ class OutcomeViewModel: ObservableObject {
         }
 
         let request = OpenAIRequest(
-            model: "gpt-4.5-preview",
+            model: "gpt-3.5-turbo",
             messages: [
                 Message(
                     role: "system",
