@@ -37,15 +37,19 @@ class SummaryViewModel: TagExtractionViewModel {
             }
 
             let request = OpenAIRequest(
-                model: "gpt-4.5-preview",
+                model: "gpt-4o-mini",
                 messages: [
                     Message(
                         role: "system",
-                        content: "You are a health assistant that creates concise and accurate 3-sentence summaries of medical studies. Do not include obvious points/conclusions, dive deeper. Use accessible language."
+                        content: "You are a health assistant that creates concise and accurate summaries of medical studies. Provide me with a 4-5 sentence paragraph that walks through the exact methods the researchers used to come to a conclusion and then explain the exact findings in detail, including numbers and percentages. Abstain from making obvious points/conclusions the user would have known without reading the study (e.g. insomnia leads to exhaustion) unless needed for context. Use easy language, so a user that is not familiar with techinal health terms (e.g. synaptic plasticity) can understand the summary. Important: Do NOT provide me with an introduction or a generalized summary. Prefer to dive deeper and follow the exact instructions of the prompt."
+                    ),
+                    Message(
+                        role: "user",
+                        content: "\(text)"
                     )
                 ],
                 temperature: 0.7,
-                maxTokens: 130
+                maxTokens: 300
             )
 
             let summary = try await openAIService.sendChat(request: request)
