@@ -17,6 +17,11 @@ class OutcomeViewModel: ObservableObject {
 
     private let openAIService = OpenAIService()
 
+    private func loadOutcomePrompt(named filename: String) -> String {
+        let url = Bundle.main.url(forResource: filename, withExtension: nil)
+        return try! String(contentsOf: url!, encoding: .utf8)
+    }
+
     func generateOutcome(from studyText: String, using healthMetrics: [String: HealthMetricHistory]) async {
         isGenerating = true
         outcomeText = nil
@@ -37,24 +42,27 @@ class OutcomeViewModel: ObservableObject {
             "metrics": healthMetricsDict
         ]
 
-        // Encode the whole user message as JSON string
         guard let userMessageData = try? JSONSerialization.data(withJSONObject: userMessageDict, options: .prettyPrinted),
               let userMessageString = String(data: userMessageData, encoding: .utf8) else {
             isGenerating = false
             return
         }
 
+        // Debug print: Show the health metrics JSON being sent
+        print("[OutcomeViewModel] Health metrics JSON sent to OpenAI:\n\(userMessageString)")
+
+        let outcomePrompt = loadOutcomePrompt(named: "Prompts/OutcomePrompt")
         let request = OpenAIRequest(
-            model: "gpt-3.5-turbo",
+            model: "gpt-4o-mini",
             messages: [
                 Message(
                     role: "system",
-                    content: "You are a health assistant that compares the findings of scientific studies to an individual's personal health data. If there's a link between the findings and a health metric(s), describe what this means for the user and what he must expect. Return 3 sentences and maintain flow thoughout the response. Keep the language accessible, but use techincal vocabularly where needed. Do not return me a summary of the study and do specifically what I asked for."
+                    content: outcomePrompt
                 ),
                 Message(role: "user", content: userMessageString)
             ],
-            temperature: 0.6,
-            maxTokens: 90
+            temperature: 0.75,
+            maxTokens: 800
         )
 
         do {
