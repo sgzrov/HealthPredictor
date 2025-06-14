@@ -16,6 +16,11 @@ class SummaryViewModel: TagExtractionViewModel {
     @Published var isSummarizing = false
 
     private let openAIService = OpenAIService()
+    
+    private func loadSummaryPrompt(named filename: String) -> String {
+        let url = Bundle.main.url(forResource: filename, withExtension: nil)
+        return try! String(contentsOf: url!, encoding: .utf8)
+    }
 
     func summarizeStudy(from url: URL) async {
         isSummarizing = true
@@ -35,21 +40,22 @@ class SummaryViewModel: TagExtractionViewModel {
                 isSummarizing = false
                 return
             }
-
+            
+            let summaryPrompt = loadSummaryPrompt(named: "Prompts/SummaryPrompt")
             let request = OpenAIRequest(
                 model: "gpt-4o-mini",
                 messages: [
                     Message(
                         role: "system",
-                        content: "You are a health assistant that creates concise and accurate summaries of medical studies. Provide me with a 4-5 sentence paragraph that walks through the exact methods the researchers used to come to a conclusion and then explain the exact findings in detail, including numbers and percentages. Abstain from making obvious points/conclusions the user would have known without reading the study (e.g. insomnia leads to exhaustion) unless needed for context. Use easy language, so a user that is not familiar with techinal health terms (e.g. synaptic plasticity) can understand the summary. Important: Do NOT provide me with an introduction or a generalized summary. Prefer to dive deeper and follow the exact instructions of the prompt."
+                        content: summaryPrompt
                     ),
                     Message(
                         role: "user",
                         content: "\(text)"
                     )
                 ],
-                temperature: 0.7,
-                maxTokens: 300
+                temperature: 0.8,
+                maxTokens: 400
             )
 
             let summary = try await openAIService.sendChat(request: request)
