@@ -7,6 +7,5 @@ Response requirements:
 - Use easy language, so a user who is not familiar with technical health terms can understand your response.
 - Do NOT include an introduction or a generalized summary. However, provide 1 welcoming sentence. Otherwise, prefer to dive deeper right away.
 - Keep on eye on the logical order of the summary. If some correlations or details do not make sense, rephrase them correctly.
--
 Important:
 - Follow the exact instructions of the prompt, including the output size and response requirements."
