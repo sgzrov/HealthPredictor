@@ -16,10 +16,13 @@ class SummaryViewModel: TagExtractionViewModel {
     @Published var isSummarizing = false
 
     private let openAIService = OpenAIService()
-    
+
     private func loadSummaryPrompt(named filename: String) -> String {
-        let url = Bundle.main.url(forResource: filename, withExtension: nil)
-        return try! String(contentsOf: url!, encoding: .utf8)
+        guard let url = Bundle.main.url(forResource: filename, withExtension: nil),
+              let prompt = try? String(contentsOf: url, encoding: .utf8) else {
+            return ""
+        }
+        return prompt
     }
 
     func summarizeStudy(from url: URL) async {
@@ -40,8 +43,8 @@ class SummaryViewModel: TagExtractionViewModel {
                 isSummarizing = false
                 return
             }
-            
-            let summaryPrompt = loadSummaryPrompt(named: "Prompts/SummaryPrompt")
+
+            let summaryPrompt = loadSummaryPrompt(named: "SummaryPrompt")
             let request = OpenAIRequest(
                 model: "gpt-4o-mini",
                 messages: [

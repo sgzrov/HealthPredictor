@@ -18,8 +18,11 @@ class OutcomeViewModel: ObservableObject {
     private let openAIService = OpenAIService()
 
     private func loadOutcomePrompt(named filename: String) -> String {
-        let url = Bundle.main.url(forResource: filename, withExtension: nil)
-        return try! String(contentsOf: url!, encoding: .utf8)
+        guard let url = Bundle.main.url(forResource: filename, withExtension: nil),
+              let prompt = try? String(contentsOf: url, encoding: .utf8) else {
+            return ""
+        }
+        return prompt
     }
 
     func generateOutcome(from studyText: String, using healthMetrics: [String: HealthMetricHistory]) async {
@@ -51,7 +54,7 @@ class OutcomeViewModel: ObservableObject {
         // Debug print: Show the health metrics JSON being sent
         print("[OutcomeViewModel] Health metrics JSON sent to OpenAI:\n\(userMessageString)")
 
-        let outcomePrompt = loadOutcomePrompt(named: "Prompts/OutcomePrompt")
+        let outcomePrompt = loadOutcomePrompt(named: "OutcomePrompt")
         let request = OpenAIRequest(
             model: "gpt-4o-mini",
             messages: [
