@@ -9,6 +9,7 @@ import Foundation
 import NaturalLanguage
 import SwiftUI
 import PDFKit
+import SwiftSoup
 
 @MainActor
 class TagExtractionViewModel: ImportURLViewModel {
@@ -31,6 +32,27 @@ class TagExtractionViewModel: ImportURLViewModel {
     }
 
     private func extractTextFromHTML(_ htmlString: String) -> String {
+        do {
+            let doc = try SwiftSoup.parse(htmlString)
+
+            try doc.select("nav, footer, script, style, header, aside, form, noscript").remove()
+            try doc.select("a[href*='pdf'], a[href*='download'], .references, .ref-list").remove()
+
+            if let main = try? doc.select("main, article, .main-content, .article").first() {
+                let mainText = try main.text()
+                if !mainText.isEmpty {
+                    return mainText
+                }
+            }
+
+            if let bodyText = try doc.body()?.text(), !bodyText.isEmpty {
+                return bodyText
+            }
+        } catch {
+            print("SwiftSoup HTML extraction failed: \(error)")
+        }
+
+        // If SwiftSoup fails, we fallback to our old regex-based parsing
         var text = htmlString
             .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
             .replacingOccurrences(of: "&nbsp;", with: " ")
