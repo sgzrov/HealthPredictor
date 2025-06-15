@@ -65,7 +65,13 @@ class OpenAIService {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.httpBody = try JSONEncoder().encode(request)
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        // Set up custom session with increased timeout
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 120 // seconds
+        config.timeoutIntervalForResource = 120 // seconds
+        let session = URLSession(configuration: config)
+
+        let (data, response) = try await session.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw OpenAIError.invalidResponse
