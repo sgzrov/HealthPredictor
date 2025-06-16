@@ -15,6 +15,17 @@ struct MainTabView: View {
                     Image(systemName: "house")
                     Text("Home")
                 }
+            StudiesHomeView()
+                .tabItem {
+                    Image(systemName: "list.bullet.rectangle")
+                    Text("Studies")
+                }
+            ChatView()
+                .tabItem {
+                    Image(systemName: "message")
+                    Text("Chat")
+                }
+            
         }
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarBackground(Color.black.opacity(0.8), for: .tabBar)
