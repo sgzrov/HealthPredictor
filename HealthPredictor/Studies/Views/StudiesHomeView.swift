@@ -10,6 +10,7 @@ import SwiftUI
 struct StudiesHomeView: View {
 
     @StateObject private var importVM = TagExtractionViewModel()
+    @StateObject private var studiesVM = StudyViewModel()
 
     @State private var searchText: String = ""
     @State private var showSheet: Bool = false
@@ -45,15 +46,6 @@ struct StudiesHomeView: View {
                                     .foregroundColor(Color(.systemGroupedBackground))
                             }
                         }
-
-                        NavigationLink(destination: StudyDetailedView(study: currentStudy)) {
-                            Text("View Study")
-                                    .font(.subheadline)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(Color.accentColor.opacity(0.15))
-                                    .cornerRadius(8)
-                        }
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
@@ -82,25 +74,54 @@ struct StudiesHomeView: View {
                     }
 
                     HStack(spacing: 8) {
-                        Text("Recommended")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary.opacity(0.5))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color(.secondarySystemFill))
-                            .cornerRadius(16)
+                        Button(action: {
+                            studiesVM.selectedCategory = .recommended
+                        }) {
+                            Text("Recommended")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(studiesVM.selectedCategory == .recommended ? .white : .primary.opacity(0.5))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(studiesVM.selectedCategory == .recommended ? Color.accentColor : Color(.secondarySystemFill))
+                                .cornerRadius(16)
+                        }
 
-                        Text("All")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary.opacity(0.5))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color(.secondarySystemFill))
-                            .cornerRadius(16)
+                        Button(action: {
+                            studiesVM.selectedCategory = .all
+                        }) {
+                            Text("All")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(studiesVM.selectedCategory == .all ? .white : .primary.opacity(0.5))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(studiesVM.selectedCategory == .all ? Color.accentColor : Color(.secondarySystemFill))
+                                .cornerRadius(16)
+                        }
                     }
-                    Spacer()
+
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            if studiesVM.selectedCategory == .recommended {
+                                if studiesVM.recommendedStudies.isEmpty {
+                                    VStack(spacing: 12) {
+                                        Text("No recommended studies.")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(.top, 40)
+                                }
+                            }
+
+                            ForEach(studiesVM.selectedCategory == .recommended ? studiesVM.recommendedStudies : studiesVM.allStudies) { study in
+                                NavigationLink(destination: StudyDetailedView(study: study)) {
+                                    StudyCardView(study: study)
+                                }
+                            }
+                        }
+                        .padding(.top, 8)
+                    }
                 }
                 .padding(.horizontal, 16)
             }
@@ -116,9 +137,13 @@ struct StudiesHomeView: View {
                     },
                     onImport: { study in
                         currentStudy = study
+                        studiesVM.allStudies.insert(study, at: 0)
                     }
                 )
             }
+        }
+        .onAppear {
+            studiesVM.loadStudies()
         }
     }
 }
