@@ -8,8 +8,36 @@
 import SwiftUI
 
 struct ChatView: View {
+
+    @StateObject private var messageVM = MessageViewModel()
+
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        VStack(spacing: 0) {
+
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(messageVM.messages) { message in
+                            MessageBubbleView(message: message)
+                        }
+                    }
+                    .padding()
+                }
+                .onChange(of: messageVM.messages) { oldValue, newValue in
+                    withAnimation {
+                        proxy.scrollTo(newValue.last?.id, anchor: .bottom)
+                    }
+                }
+            }
+
+            ChatInputView(
+                inputMessage: $messageVM.inputMessage,
+                onSend: {
+                    messageVM.sendMessage()
+                }
+            )
+        }
+        .background(Color(.systemGroupedBackground))
     }
 }
 
