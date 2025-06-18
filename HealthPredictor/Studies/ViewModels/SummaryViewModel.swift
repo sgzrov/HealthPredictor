@@ -46,7 +46,7 @@ class SummaryViewModel: TagExtractionViewModel {
 
             let summaryPrompt = loadSummaryPrompt(named: "SummaryPrompt")
             let request = OpenAIRequest(
-                model: "gpt-4o-mini",
+                model: "gpt-4.1-mini",
                 messages: [
                     Message(
                         role: "system",
