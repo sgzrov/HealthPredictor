@@ -56,7 +56,7 @@ class OutcomeViewModel: ObservableObject {
 
         let outcomePrompt = loadOutcomePrompt(named: "OutcomePrompt")
         let request = OpenAIRequest(
-            model: "gpt-4o-mini",
+            model: "gpt-4.1-mini",
             messages: [
                 Message(
                     role: "system",
@@ -65,7 +65,7 @@ class OutcomeViewModel: ObservableObject {
                 Message(role: "user", content: userMessageString)
             ],
             temperature: 0.75,
-            maxTokens: 800
+            maxTokens: 500
         )
 
         do {
