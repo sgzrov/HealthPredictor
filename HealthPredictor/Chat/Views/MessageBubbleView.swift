@@ -2,9 +2,8 @@
 //  MessageBubbleView.swift
 //  HealthPredictor
 //
-//  Created by Stephan  on 05.04.2025.
-
-//  Single message (left/right bubble)
+//  Created by Stephan  on 18.06.2025.
+//
 
 import SwiftUI
 
