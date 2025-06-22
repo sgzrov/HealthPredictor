@@ -1,9 +1,7 @@
 import os
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
-from pydantic import BaseModel
 from dotenv import load_dotenv
 import logging
-from typing import Optional
 
 from health_agent import HealthAgent
 from file_manager import FileManager
@@ -22,54 +20,36 @@ if not api_key:
 health_agent = HealthAgent(api_key)
 file_manager = FileManager()
 
-class HealthAnalysisRequest(BaseModel):
-    question: Optional[str] = None
-
 @app.get("/")
 def read_root():
-    return {"message": "Health Predictor Backend is running"}
+    return {"message": "Health Predictor Backend is running..."}
 
 @app.post("/analyze-health-data/")
-async def analyze_health_data(
-    file: UploadFile = File(...),
-    question: Optional[str] = Form(None)
-):
-    """Analyze health data from uploaded CSV file with optional user question."""
+async def analyze_health_data(file: UploadFile = File(...), question: str = Form(...)):
 
-    # Validate file
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="Filename not provided.")
-
-    if not file_manager.validate_csv_file(file.filename):
-        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a CSV file.")
+    if not file_manager.validate_csv_file("user_health_data.csv"):
+        raise HTTPException(status_code=400, detail="Invalid file type. Expected a CSV.")
 
     temp_file_path = None
     openai_file_id = None
 
     try:
-        # Save the uploaded file temporarily
-        temp_file_path = file_manager.save_uploaded_file(file, file.filename)
+        temp_file_path = file_manager.save_uploaded_file(file, "user_health_data.csv")  # Save uploaded file temporarily
+        openai_file_id = health_agent.upload_file(temp_file_path)  # Upload file to OpenAI
+        analysis = health_agent.analyze_health_data(openai_file_id, question)  # Analyze health data and provide response to user
 
-        # Upload file to OpenAI
-        openai_file_id = health_agent.upload_file(temp_file_path)
-
-        # Analyze the health data
-        analysis = health_agent.analyze_health_data(openai_file_id, question)
-
-        logger.info("Health data analysis completed successfully.")
+        logger.info("Heath analysis completed.")
         return {"analysis": analysis}
 
     except Exception as e:
-        logger.exception("An error occurred during analysis.")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Error occurred during analysis.")
+        raise HTTPException(status_code = 500, detail = str(e))
 
     finally:
-        # Clean up resources
         if temp_file_path:
-            file_manager.cleanup_file(temp_file_path)
-
+            file_manager.cleanup_file(temp_file_path)  # Clean file path on disk
         if openai_file_id:
-            health_agent.cleanup_file(openai_file_id)
+            health_agent.cleanup_file(openai_file_id)  # Clean file from OpenAI
 
 if __name__ == "__main__":
     import uvicorn
