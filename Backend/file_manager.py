@@ -1,17 +1,16 @@
 import os
 import shutil
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 class FileManager:
     def __init__(self, temp_dir: str = "temp"):
         self.temp_dir = temp_dir  # Creates a temp folder for storing CSV file
-        self.ensure_temp_dir_exists()  # Makes sure the temp folder exists
+        self._ensure_temp_dir_exists()  # Makes sure the temp folder exists
 
-    def ensure_temp_dir_exists(self):
-        os.makedirs(self.temp_dir, exist_ok=True)
+    def _ensure_temp_dir_exists(self):
+        os.makedirs(self.temp_dir, exist_ok = True)
 
     def save_uploaded_file(self, uploaded_file, filename: str) -> str:
         temp_file_path = os.path.join(self.temp_dir, filename)
@@ -32,6 +31,7 @@ class FileManager:
             if os.path.exists(file_path):
                 os.remove(file_path)
                 logger.info(f"Removed temporary file {file_path}")
+
         except Exception as e:
             logger.error(f"Error removing temporary file {file_path}: {e}")
 

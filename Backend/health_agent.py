@@ -1,7 +1,6 @@
 import os
 import logging
 from openai import OpenAI
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -72,12 +71,12 @@ class HealthAgent:
             logger.error(f"Error uploading file: {e}")
             raise
 
-    def analyze_health_data(self, file_id: str, question: str) -> str:
+    def analyze_health_data(self, file_id: str, user_input: str) -> str:
         assert self.assistant is not None, "Assistant could not be initialized."
 
         thread = None
         try:
-            initial_message = f"Please scan through the attached CSV file and provide an answer to this input: {question}"
+            initial_message = f"Please scan through the attached CSV file and provide an answer to this input: {user_input}"
 
             # Create initial thread
             thread = self.client.beta.threads.create(
