@@ -31,7 +31,7 @@
 
     <key>UILaunchScreen</key>
     <dict/>
-    
+
     <key>UIRequiredDeviceCapabilities</key>
     <array>
         <string>arm64</string>
@@ -46,6 +46,22 @@
 
     <key>UILaunchStoryboardName</key>
     <string>LaunchScreen</string>
+
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <true/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>192.168.68.60</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+                <key>NSExceptionMinimumTLSVersion</key>
+                <string>TLSv1.0</string>
+            </dict>
+        </dict>
+    </dict>
 </dict>
 </plist>
 
