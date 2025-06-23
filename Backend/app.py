@@ -27,18 +27,20 @@ def read_root():
 @app.post("/analyze-health-data/")
 async def analyze_health_data(file: UploadFile = File(...), question: str = Form(...)):
 
-    if not file_manager.validate_csv_file("user_health_data.csv"):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file name provided.")
+
+    if not file_manager.validate_csv_file(file.filename):
         raise HTTPException(status_code=400, detail="Invalid file type. Expected a CSV.")
 
     temp_file_path = None
     openai_file_id = None
-
     try:
-        temp_file_path = file_manager.save_uploaded_file(file, "user_health_data.csv")  # Save uploaded file temporarily
-        openai_file_id = health_agent.upload_file(temp_file_path)  # Upload file to OpenAI
-        analysis = health_agent.analyze_health_data(openai_file_id, question)  # Analyze health data and provide response to user
+        temp_file_path = file_manager.save_uploaded_file(file, file.filename)
+        openai_file_id = health_agent.upload_file(temp_file_path)
+        analysis = health_agent.analyze_health_data(openai_file_id, question)
 
-        logger.info("Heath analysis completed.")
+        logger.info("Health analysis request processed.")
         return {"analysis": analysis}
 
     except Exception as e:
