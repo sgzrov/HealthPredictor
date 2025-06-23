@@ -1,10 +1,9 @@
 import os
+import logging
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from dotenv import load_dotenv
-import logging
 
 from health_agent import HealthAgent
-from file_manager import FileManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,7 +17,6 @@ if not api_key:
     raise ValueError("OPENAI_API_KEY environment variable not set.")
 
 health_agent = HealthAgent(api_key)
-file_manager = FileManager()
 
 @app.get("/")
 def read_root():
@@ -26,32 +24,16 @@ def read_root():
 
 @app.post("/analyze-health-data/")
 async def analyze_health_data(file: UploadFile = File(...), question: str = Form(...)):
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code = 400, detail = "Invalid file type. Expected a CSV.")
 
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No file name provided.")
-
-    if not file_manager.validate_csv_file(file.filename):
-        raise HTTPException(status_code=400, detail="Invalid file type. Expected a CSV.")
-
-    temp_file_path = None
-    openai_file_id = None
     try:
-        temp_file_path = file_manager.save_uploaded_file(file, file.filename)
-        openai_file_id = health_agent.upload_file(temp_file_path)
-        analysis = health_agent.analyze_health_data(openai_file_id, question)
-
-        logger.info("Health analysis request processed.")
+        analysis = health_agent.analyze_health_data(file.file, question)
+        logger.info("Health analysis completed.")
         return {"analysis": analysis}
-
     except Exception as e:
-        logger.exception("Error occurred during analysis.")
+        logger.exception("Health analysis failed.")
         raise HTTPException(status_code = 500, detail = str(e))
-
-    finally:
-        if temp_file_path:
-            file_manager.cleanup_file(temp_file_path)  # Clean file path on disk
-        if openai_file_id:
-            health_agent.cleanup_file(openai_file_id)  # Clean file from OpenAI
 
 if __name__ == "__main__":
     import uvicorn
