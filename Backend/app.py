@@ -20,7 +20,7 @@ health_agent = HealthAgent(api_key)
 
 @app.get("/")
 def read_root():
-    return {"message": "Health Predictor Backend is running..."}
+    return {"message": "Health Predictor Backend is running."}
 
 @app.post("/analyze-health-data/")
 async def analyze_health_data(file: UploadFile = File(...), question: str = Form(...)):
