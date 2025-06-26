@@ -86,7 +86,7 @@ class HealthAgent:
             logger.error(f"Could not extract text from response. Response keys: {list(response_data.keys())}")
             logger.debug(f"Full response data: {response_data}")
 
-            return "I've received your health data, but couldn't process the response properly."
+            raise Exception("Health data processing failed: could not extract response.")
 
         except Exception as e:
             logger.error(f"OpenAI error: {e}")
