@@ -8,9 +8,9 @@
 import Foundation
 import HealthKit
 
-class CSVManager {
+class CSVManagingService {
 
-    static let shared = CSVManager()
+    static let shared = CSVManagingService()
 
     private let healthStore = HKHealthStore()
     private let fileName = "user_health_data.csv"
