@@ -15,70 +15,61 @@ class MessageViewModel: ObservableObject {
     @Published var inputMessage: String = ""
     @Published var isLoading: Bool = false
 
-    private let openAIService = OpenAIService()
-
-    private func loadOutcomePrompt(named filename: String) -> String {
-        guard let url = Bundle.main.url(forResource: filename, withExtension: nil),
-              let prompt = try? String(contentsOf: url, encoding: .utf8) else {
-            return ""
-        }
-        return prompt
-    }
+    private let healthDataCommunicationService = HealthDataCommunicationService()
+    private let healthFileCreationService = HealthFileCreationService()
 
     func sendMessage() {
         guard !inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard !isLoading else { return }
 
-        // Add user message
         let userMessage = ChatMessage(content: inputMessage, sender: .user)
         messages.append(userMessage)
 
-        // Store the user's message for the API call
         let userInput = inputMessage
-
-        // Clear input
         inputMessage = ""
-
         isLoading = true
 
         Task {
-            await sendToOpenAI(userInput: userInput)
+            await sendToBackend(userInput: userInput)
         }
     }
 
-    func sendToOpenAI(userInput: String) async {
-        let chatPrompt = loadOutcomePrompt(named: "ChatPrompt")
-        let request = OpenAIRequest(
-            model: "gpt-4.1-mini",
-            messages: [
-                Message(
-                    role: "system",
-                    content: chatPrompt
-                ),
-                Message(
-                    role: "user",
-                    content: userInput
-                )
-            ],
-            temperature: 0.85,
-            maxTokens: 600
-        )
-
+    private func sendToBackend(userInput: String) async {
         do {
-            let result = try await openAIService.sendChat(request: request)
+            let csvPath = try await generateCSVAsync()
+
+            let response = try await healthDataCommunicationService.analyzeHealthData(
+                csvFilePath: csvPath,
+                question: userInput
+            )
+
             let assistantMessage = ChatMessage(
-                content: result,
+                content: response,
                 sender: .assistant
             )
+
             self.messages.append(assistantMessage)
         } catch {
             let errorMessage = ChatMessage(
-                content: "Sorry, I'm having trouble connecting right now. Please try again later.",
+                content: "I'm having trouble processing your request right now. Please try again later.",
                 sender: .assistant
             )
             self.messages.append(errorMessage)
-            print("OpenAI API error: \(error.localizedDescription)")
+            print("Backend API error: \(error.localizedDescription)")
         }
 
         isLoading = false
+    }
+
+    private func generateCSVAsync() async throws -> String {
+        return try await withCheckedThrowingContinuation { continuation in
+            healthFileCreationService.generateCSV { url in
+                if let url = url {
+                    continuation.resume(returning: url.path)
+                } else {
+                    continuation.resume(throwing: HealthCommunicationError.fileNotFound)
+                }
+            }
+        }
     }
 }
