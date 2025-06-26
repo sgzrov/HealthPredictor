@@ -3,3 +3,5 @@
 *.xcuserdata
 Documents.pub
 Secrets.plist
+__pycache__/
+Packages/venv/
