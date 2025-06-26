@@ -15,25 +15,16 @@ class SummaryViewModel: TagExtractionViewModel {
     @Published var extractedText: String?
     @Published var isSummarizing = false
 
-    private let openAIService = OpenAIService()
-
-    private func loadSummaryPrompt(named filename: String) -> String {
-        guard let url = Bundle.main.url(forResource: filename, withExtension: nil),
-              let prompt = try? String(contentsOf: url, encoding: .utf8) else {
-            return ""
-        }
-        return prompt
-    }
+    private let healthDataCommunicationService = HealthDataCommunicationService()
 
     func summarizeStudy(from url: URL) async {
         isSummarizing = true
         summarizedText = nil
+        errorMessage = ""
 
         do {
             let data = try await fetchData(for: url)
-
             await validateFileType(url: url)
-
             let text = extractText(from: data, isPDF: isPDF, isHTML: isHTML)
             self.extractedText = text
             print("Extracted text length: \(text.count)")
@@ -44,26 +35,10 @@ class SummaryViewModel: TagExtractionViewModel {
                 return
             }
 
-            let summaryPrompt = loadSummaryPrompt(named: "SummaryPrompt")
-            let request = OpenAIRequest(
-                model: "gpt-4.1-mini",
-                messages: [
-                    Message(
-                        role: "system",
-                        content: summaryPrompt
-                    ),
-                    Message(
-                        role: "user",
-                        content: "\(text)"
-                    )
-                ],
-                temperature: 0.8,
-                maxTokens: 400
-            )
-
-            let summary = try await openAIService.sendChat(request: request)
+            let summary = try await healthDataCommunicationService.summarizeStudy(studyText: text)
             self.summarizedText = summary
         } catch {
+            self.errorMessage = "Failed to summarize: \(error.localizedDescription)"
             print("Failed to summarize: \(error).")
         }
 
