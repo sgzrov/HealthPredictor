@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 from health_agent import HealthAgent
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level = logging.INFO)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -37,4 +37,4 @@ async def analyze_health_data(file: UploadFile = File(...), question: str = Form
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host = "0.0.0.0", port = 8000)
