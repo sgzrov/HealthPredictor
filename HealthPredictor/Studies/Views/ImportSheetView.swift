@@ -192,19 +192,25 @@ struct ImportSheetView: View {
                         let url = selectedFileURL ?? URL(string: importVM.importInput)!
                         await summaryVM.summarizeStudy(from: url)
 
-                        if let text = summaryVM.extractedText {
-                            await outcomeVM.generateOutcome(from: text)
-                        }
-
-                        if let summary = summaryVM.summarizedText, let outcome = outcomeVM.outcomeText, !summary.isEmpty, !outcome.isEmpty {
+                        if let summary = summaryVM.summarizedText, !summary.isEmpty {
                             let study = Study(
                                 title: url.lastPathComponent,
                                 summary: summary,
-                                personalizedInsight: outcome,
+                                personalizedInsight: "Loading...",
                                 sourceURL: url
                             )
                             onImport(study)
+
                             onDismiss()
+
+                            if let text = summaryVM.extractedText {
+                                await outcomeVM.generateOutcome(from: text)
+                                if let outcome = outcomeVM.outcomeText, !outcome.isEmpty {
+                                    await MainActor.run {
+                                        study.personalizedInsight = outcome
+                                    }
+                                }
+                            }
                         }
                     }
                 }) {
