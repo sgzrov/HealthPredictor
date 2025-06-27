@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import PDFKit
 
 @MainActor
 class SummaryViewModel: TagExtractionViewModel {
@@ -24,8 +25,8 @@ class SummaryViewModel: TagExtractionViewModel {
 
         do {
             let data = try await fetchData(for: url)
-            await validateFileType(url: url)
-            let text = extractText(from: data, isPDF: isPDF, isHTML: isHTML)
+            let contentType = await determineContentType(url: url)
+            let text = extractText(from: data, isPDF: contentType.isPDF, isHTML: contentType.isHTML)
             self.extractedText = text
             print("Extracted text length: \(text.count)")
 
@@ -43,5 +44,16 @@ class SummaryViewModel: TagExtractionViewModel {
         }
 
         isSummarizing = false
+    }
+
+    private func determineContentType(url: URL) async -> (isPDF: Bool, isHTML: Bool) {
+        if url.isFileURL {
+            let data = try? Data(contentsOf: url)
+            let isPDF = data != nil && PDFDocument(data: data!) != nil
+            return (isPDF: isPDF, isHTML: false)
+        } else {
+            let result = await URLExtensionCheck().checkContentType(url: url)
+            return (isPDF: result.type == .pdf, isHTML: result.type == .html)
+        }
     }
 }
