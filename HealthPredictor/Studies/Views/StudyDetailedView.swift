@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct StudyDetailedView: View {
-    let study: Study
+    @ObservedObject var study: Study
 
     var body: some View {
         ScrollView {
