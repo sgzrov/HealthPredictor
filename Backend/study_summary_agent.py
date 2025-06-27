@@ -1,29 +1,50 @@
 import os
-from openai import OpenAI
+import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 class StudySummaryAgent:
-    def __init__(self, api_key, prompt_path = None):
-        self.client = OpenAI(api_key = api_key)
+    def __init__(self, api_key, prompt_path=None):
+        self.api_key = api_key
+        self.model = "gpt-4.1-mini"
+        self.base_url = "https://api.openai.com/v1"
+        self.headers = {"Authorization": f"Bearer {self.api_key}"}
 
         if prompt_path is None:
             prompt_path = os.path.join(os.path.dirname(__file__), "Prompts", "SummaryPrompt.txt")
-        with open(prompt_path, "r", encoding = "utf-8") as f:
+        with open(prompt_path, "r", encoding="utf-8") as f:
             self.prompt = f.read()
 
     def summarize(self, text, prompt = None):
         instructions = prompt if prompt is not None else self.prompt
-        response = self.client.responses.create(
-            model = "gpt-4.1-mini",
-            instructions = instructions,
-            input = text
-        )
+        payload = {
+            "model": self.model,
+            "instructions": instructions,
+            "input": text
+        }
+        try:
+            logger.info(f"Attempting to summarize text of length: {len(text)}")
+            response = requests.post(
+                f"{self.base_url}/responses",
+                headers={**self.headers, "Content-Type": "application/json"},
+                json=payload
+            )
+            response.raise_for_status()
+            data = response.json()
+            logger.info(f"Response received: {data}")
 
-        if hasattr(response, "output_text"):
-            return response.output_text
-
-        outputs = []
-        for item in getattr(response, "output", []):
-            for content in item.get("content", []):
-                if content.get("type") == "output_text":
-                    outputs.append(content.get("text", ""))
-        return "\n".join(outputs)
+            if "output" in data and data["output"]:
+                output = data["output"][0]
+                if "content" in output and output["content"]:
+                    content = output["content"][0]
+                    if content.get("type") == "output_text" and content.get("text"):
+                        return content["text"]
+            if "output_text" in data and data["output_text"]:
+                return data["output_text"]
+            if "text" in data and data["text"]:
+                return data["text"]
+            raise Exception("No summary text found in response.")
+        except Exception as e:
+            logger.error(f"Error in summarize: {e}")
+            raise
