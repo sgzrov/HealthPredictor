@@ -17,6 +17,7 @@ struct StudiesHomeView: View {
     @State private var showFileImporter: Bool = false
     @State private var selectedFileURL: URL?
     @State private var currentStudy: Study = Study(title: "Test Study", summary: "This is a test study for development purposes.", personalizedInsight: "This is a test insight", sourceURL: URL(string: "https://example.com")!)
+    @State private var navigateToStudy: Study?
 
     var body: some View {
         NavigationStack {
@@ -116,7 +117,15 @@ struct StudiesHomeView: View {
 
                             ForEach(studiesVM.selectedCategory == .recommended ? studiesVM.recommendedStudies : studiesVM.allStudies) { study in
                                 NavigationLink(destination: StudyDetailedView(study: study)) {
-                                    StudyCardView(study: study)
+                                    StudyCardView(
+                                        study: study,
+                                        onRefreshSummary: {
+                                            studiesVM.updateSummary(for: study.id, summary: "Refreshing summary...")
+                                        },
+                                        onRefreshOutcome: {
+                                            studiesVM.updateOutcome(for: study.id, outcome: "Refreshing outcome...")
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -124,6 +133,9 @@ struct StudiesHomeView: View {
                     }
                 }
                 .padding(.horizontal, 16)
+            }
+            .navigationDestination(item: $navigateToStudy) { study in
+                StudyDetailedView(study: study)
             }
             .sheet(isPresented: $showSheet) {
                 ImportSheetView(
@@ -138,6 +150,9 @@ struct StudiesHomeView: View {
                     onImport: { study in
                         currentStudy = study
                         studiesVM.allStudies.insert(study, at: 0)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            navigateToStudy = study
+                        }
                     }
                 )
             }
