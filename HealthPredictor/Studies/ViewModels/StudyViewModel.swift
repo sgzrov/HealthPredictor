@@ -15,10 +15,11 @@ enum StudyCategory {
 
 @MainActor
 class StudyViewModel: ObservableObject {
+
     @Published var selectedCategory: StudyCategory = .recommended
     @Published var recommendedStudies: [Study] = []
     @Published var allStudies: [Study] = []
-    
+
     func loadStudies() {
         let sampleStudies = [
             Study(
@@ -31,5 +32,23 @@ class StudyViewModel: ObservableObject {
 
         recommendedStudies = []
         allStudies = sampleStudies
+    }
+
+    func updateOutcome(for id: UUID, outcome: String) {
+        if let index = allStudies.firstIndex(where: { $0.id == id }) {
+            allStudies[index].personalizedInsight = outcome
+        }
+        if let index = recommendedStudies.firstIndex(where: { $0.id == id }) {
+            recommendedStudies[index].personalizedInsight = outcome
+        }
+    }
+
+    func updateSummary(for id: UUID, summary: String) {
+        if let index = allStudies.firstIndex(where: { $0.id == id }) {
+            allStudies[index].summary = summary
+        }
+        if let index = recommendedStudies.firstIndex(where: { $0.id == id }) {
+            recommendedStudies[index].summary = summary
+        }
     }
 }
