@@ -20,7 +20,7 @@ enum HealthCommunicationError: Error {
 }
 
 class HealthDataCommunicationService {
-    private static let baseURL = "http://192.168.68.60:8000"  // Personal computer IP address
+    private static let baseURL = "http://localhost:8000"  // Local development
 
     func analyzeHealthData(csvFilePath: String, question: String?) async throws -> String {
         guard let url = URL(string: "\(Self.baseURL)/analyze-health-data/") else {
@@ -80,7 +80,12 @@ class HealthDataCommunicationService {
         let body = ["text": studyText]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 120 // 2 minutes
+        config.timeoutIntervalForResource = 180 // 3 minutes
+        let session = URLSession(configuration: config)
+
+        let (data, response) = try await session.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
             throw HealthCommunicationError.invalidResponse
         }
