@@ -2,10 +2,11 @@ import os
 import logging
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Body
 from dotenv import load_dotenv
+from pydantic import BaseModel
 
-from Backend.chat_agent import ChatAgent
-from Backend.study_outcome_agent import StudyOutcomeAgent
-from Backend.study_summary_agent import StudySummaryAgent
+from chat_agent import ChatAgent
+from study_outcome_agent import StudyOutcomeAgent
+from study_summary_agent import StudySummaryAgent
 
 logging.basicConfig(level = logging.INFO)
 logger = logging.getLogger(__name__)
@@ -21,6 +22,9 @@ if not api_key:
 chat_agent = ChatAgent(api_key)
 summary_agent = StudySummaryAgent(api_key)
 outcome_agent = StudyOutcomeAgent(api_key)
+
+class SummarizeRequest(BaseModel):
+    text: str
 
 @app.get("/")
 def read_root():
@@ -46,9 +50,11 @@ async def generate_outcome(file: UploadFile = File(...), studytext: str = Form(.
         raise HTTPException(status_code = 500, detail = str(e))
 
 @app.post("/summarize-study/")
-async def summarize_study(text: str = Body(...)):
+async def summarize_study(request: SummarizeRequest):
+    logger.info(f"/summarize-study/ called with text length: {len(request.text) if request.text else 'None'}")
+    print(f"[DEBUG] Received text: {request.text[:200] if request.text else 'None'}")  # Print first 200 chars for debug
     try:
-        summary = summary_agent.summarize(text)
+        summary = summary_agent.summarize(request.text)
         return {"summary": summary}
     except Exception as e:
         logger.exception("Summary generation failed.")
