@@ -62,8 +62,8 @@ class HealthFileCreationService {
         monthFormatter.dateFormat = "yyyy-MM"
 
         // Build date ranges
-        let dailyDates: [Date] = (0..<150).compactMap { calendar.date(byAdding: .day, value: -$0, to: today) }
-        let monthsToSkip = 5
+        let dailyDates: [Date] = (0..<90).compactMap { calendar.date(byAdding: .day, value: -$0, to: today) }
+        let monthsToSkip = 3
         let monthlyMonths: [Date] = (monthsToSkip..<24).compactMap { calendar.date(byAdding: .month, value: -$0, to: today) }
 
         for metric in metricNames {
