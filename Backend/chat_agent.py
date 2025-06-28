@@ -5,13 +5,18 @@ from typing import BinaryIO
 logger = logging.getLogger(__name__)
 
 class ChatAgent:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key, prompt_path):
         self.api_key = api_key
         self.model = "gpt-4.1-mini"
         self.base_url = "https://api.openai.com/v1"
         self.headers = {"Authorization": f"Bearer {self.api_key}"}
 
-    def analyze_health_data(self, file_obj: BinaryIO, user_input: str) -> str:
+        with open(prompt_path, "r", encoding = "utf-8") as f:
+            self.prompt = f.read()
+
+    def analyze_health_data(self, file_obj: BinaryIO, user_input: str, prompt = None) -> str:
+        instructions = prompt if prompt is not None else self.prompt
+
         try:
             container_payload = {"name": "Chat Data Container"}
             container_resp = requests.post(
@@ -52,10 +57,7 @@ class ChatAgent:
                         }
                     }
                 ],
-                "instructions": (
-                    "You are a professional health data analyst. Analyze the provided CSV containing a user's "
-                    "health metrics. When asked a question, write and run Python code to answer it accurately."
-                ),
+                "instructions": instructions,
                 "input": user_input
             }
             response = requests.post(
