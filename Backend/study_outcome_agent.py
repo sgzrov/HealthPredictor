@@ -1,5 +1,3 @@
-import os
-import json
 import requests
 import logging
 from typing import BinaryIO
@@ -7,14 +5,12 @@ from typing import BinaryIO
 logger = logging.getLogger(__name__)
 
 class StudyOutcomeAgent:
-    def __init__(self, api_key, prompt_path = None):
+    def __init__(self, api_key, prompt_path):
         self.api_key = api_key
         self.model = "gpt-4.1-mini"
         self.base_url = "https://api.openai.com/v1"
         self.headers = {"Authorization": f"Bearer {self.api_key}"}
 
-        if prompt_path is None:
-            prompt_path = os.path.join(os.path.dirname(__file__), "Prompts", "OutcomePrompt.txt")
         with open(prompt_path, "r", encoding = "utf-8") as f:
             self.prompt = f.read()
 
@@ -79,6 +75,7 @@ class StudyOutcomeAgent:
             response.raise_for_status()
             response_data = response.json()
             logger.debug(f"Response structure: {response_data.keys()}")
+
             try:
                 if "output" in response_data and response_data["output"]:
                     output = response_data["output"][0]
@@ -88,14 +85,13 @@ class StudyOutcomeAgent:
                             return content["text"]
                         else:
                             logger.warning(f"Unexpected content type: {content.get('type')}")
-
-                if "text" in response_data and response_data["text"]:
-                    return response_data["text"]
             except (IndexError, KeyError, TypeError) as e:
                 logger.warning(f"Error parsing nested output structure: {e}")
 
+            # Log the full response for debugging if we can't extract text
             logger.error(f"Could not extract text from response. Response keys: {list(response_data.keys())}")
             logger.debug(f"Full response data: {response_data}")
+
             raise Exception("Outcome generation failed: could not extract response.")
 
         except Exception as e:
