@@ -1,6 +1,6 @@
 import os
 import logging
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Body
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
@@ -19,16 +19,16 @@ api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     raise ValueError("OPENAI_API_KEY environment variable not set.")
 
-chat_agent = ChatAgent(api_key)
-summary_agent = StudySummaryAgent(api_key)
-outcome_agent = StudyOutcomeAgent(api_key)
+chat_prompt_path = os.path.join(os.path.dirname(__file__), "Prompts", "ChatPrompt.txt")
+summary_prompt_path = os.path.join(os.path.dirname(__file__), "Prompts", "SummaryPrompt.txt")
+outcome_prompt_path = os.path.join(os.path.dirname(__file__), "Prompts", "OutcomePrompt.txt")
+
+chat_agent = ChatAgent(api_key, prompt_path = chat_prompt_path)
+summary_agent = StudySummaryAgent(api_key, prompt_path = summary_prompt_path)
+outcome_agent = StudyOutcomeAgent(api_key, prompt_path = outcome_prompt_path)
 
 class SummarizeRequest(BaseModel):
     text: str
-
-@app.get("/")
-def read_root():
-    return {"message": "Health Predictor Backend is running."}
 
 @app.post("/analyze-health-data/")
 async def analyze_health_data(file: UploadFile = File(...), question: str = Form(...)):
@@ -44,6 +44,7 @@ async def analyze_health_data(file: UploadFile = File(...), question: str = Form
 async def generate_outcome(file: UploadFile = File(...), studytext: str = Form(...)):
     try:
         outcome = outcome_agent.generate_outcome(file.file, studytext)
+        print(f"[DEBUG] Outcome response: {outcome}")  # Ensure outcome response is not None
         return {"outcome": outcome}
     except Exception as e:
         logger.exception("Outcome generation failed.")
@@ -51,10 +52,9 @@ async def generate_outcome(file: UploadFile = File(...), studytext: str = Form(.
 
 @app.post("/summarize-study/")
 async def summarize_study(request: SummarizeRequest):
-    logger.info(f"/summarize-study/ called with text length: {len(request.text) if request.text else 'None'}")
-    print(f"[DEBUG] Received text: {request.text[:200] if request.text else 'None'}")  # Print first 200 chars for debug
     try:
         summary = summary_agent.summarize(request.text)
+        print(f"[DEBUG: Summary response {summary}]") # Ensure summary response is not None
         return {"summary": summary}
     except Exception as e:
         logger.exception("Summary generation failed.")
