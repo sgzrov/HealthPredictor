@@ -12,7 +12,7 @@ import Firebase
 struct HealthPredictorApp: App {
 
     init() {
-        HealthStoreService().requestAuthorization { success, error in
+        HealthStoreService.shared.requestAuthorization { success, error in
             if success {
                 print("✅ HealthKit authorized.")
             } else {

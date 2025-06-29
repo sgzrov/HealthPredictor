@@ -15,8 +15,8 @@ class MessageViewModel: ObservableObject {
     @Published var inputMessage: String = ""
     @Published var isLoading: Bool = false
 
-    private let healthDataCommunicationService = HealthDataCommunicationService()
-    private let healthFileCreationService = HealthFileCreationService()
+    private let healthDataCommunicationService = HealthDataCommunicationService.shared
+    private let healthFileCreationService = HealthFileCreationService.shared
 
     func sendMessage() {
         guard !inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
