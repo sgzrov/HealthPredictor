@@ -188,27 +188,37 @@ struct ImportSheetView: View {
                 Spacer()
 
                 Button(action: {
+                    let url = selectedFileURL ?? URL(string: importVM.importInput)!
+                    let study = Study(
+                        title: url.lastPathComponent,
+                        summary: "Loading...",
+                        personalizedInsight: "Loading...",
+                        sourceURL: url
+                    )
+                    onImport(study)
+                    onDismiss()
+
+                    // Extract text once, then start two parallel processes
                     Task {
-                        let url = selectedFileURL ?? URL(string: importVM.importInput)!
-                        await summaryVM.summarizeStudy(from: url)
+                        let extractedText = try? await TextExtractionService.shared.extractText(from: url)
+                        guard let extractedText, !extractedText.isEmpty else {
+                            print("Text extraction failed for URL: \(url)")
+                            return
+                        }
 
-                        if let summary = summaryVM.summarizedText, !summary.isEmpty {
-                            let study = Study(
-                                title: url.lastPathComponent,
-                                summary: summary,
-                                personalizedInsight: "Loading...",
-                                sourceURL: url
-                            )
-                            onImport(study)
-
-                            onDismiss()
-
-                            if let text = summaryVM.extractedText {
-                                await outcomeVM.generateOutcome(from: text)
-                                if let outcome = outcomeVM.outcomeText, !outcome.isEmpty {
-                                    await MainActor.run {
-                                        study.personalizedInsight = outcome
-                                    }
+                        Task {
+                            let summary = await summaryVM.summarizeStudy(text: extractedText)
+                            await MainActor.run {
+                                if let summary = summary, !summary.isEmpty {
+                                    study.summary = summary
+                                }
+                            }
+                        }
+                        Task {
+                            let outcome = await outcomeVM.generateOutcome(from: extractedText)
+                            await MainActor.run {
+                                if let outcome = outcome, !outcome.isEmpty {
+                                    study.personalizedInsight = outcome
                                 }
                             }
                         }
