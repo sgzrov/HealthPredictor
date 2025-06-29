@@ -4,4 +4,4 @@
 Documents.pub
 Secrets.plist
 __pycache__/
-Backend/Packages/venv/
+Backend/Packages/venv/Backend/.env
