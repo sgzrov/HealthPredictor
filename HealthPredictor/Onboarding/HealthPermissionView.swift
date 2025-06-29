@@ -8,8 +8,8 @@
 import SwiftUI
 
 struct HealthPermissionView: View {
-    let healthStore = HealthStoreService()
-    
+    let healthStore = HealthStoreService.shared
+
     var body: some View {
         VStack(spacing: 20) {
             Text("We need access to your Health data:")

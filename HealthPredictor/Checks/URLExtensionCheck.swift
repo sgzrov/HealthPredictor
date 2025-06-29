@@ -9,8 +9,7 @@ import Foundation
 import PDFKit
 import SwiftSoup
 
-class URLExtensionCheck {
-
+struct URLExtensionCheck {
     enum ContentType {
         case pdf
         case html
@@ -22,7 +21,7 @@ class URLExtensionCheck {
         let error: String?
     }
 
-    func checkContentType(url: URL) async -> ContentTypeResult {
+    static func checkContentType(url: URL) async -> ContentTypeResult {
         if url.isFileURL {
             let data: Data
 
@@ -74,14 +73,14 @@ class URLExtensionCheck {
         }
     }
 
-    private func isParsableHTML(data: Data) -> Bool {
+    private static func isParsableHTML(data: Data) -> Bool {
         guard let htmlString = String(data: data, encoding: .utf8) else {
             return false
         }
         return (try? SwiftSoup.parse(htmlString)) != nil
     }
 
-    private func fail() -> ContentTypeResult {
+    private static func fail() -> ContentTypeResult {
         return .init(type: .unknown, error: "Invalid URL. Content could not be inferred.")
     }
 }

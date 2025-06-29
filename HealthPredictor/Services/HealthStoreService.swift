@@ -10,6 +10,10 @@ import HealthKit
 
 class HealthStoreService {
 
+    static let shared = HealthStoreService()
+
+    private init() {}
+
     let healthStore = HKHealthStore()
 
     func requestAuthorization(completion: @escaping (Bool, Error?) -> Void) {

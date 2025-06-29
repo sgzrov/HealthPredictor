@@ -7,19 +7,18 @@
 
 import Foundation
 
-class URLStringCheck {
-
+struct URLStringCheck {
     struct ValidationResult {
         let isValid: Bool
         let errorMessage: String?
     }
 
-    private let invalidURLCharacters = CharacterSet(charactersIn: "<>{}|")
-    private let commonTLDs = ["com", "org", "net", "edu", "gov", "io", "co", "ai", "app", "dev", "health", "research",
+    private static let invalidURLCharacters = CharacterSet(charactersIn: "<>{}|")
+    private static let commonTLDs = ["com", "org", "net", "edu", "gov", "io", "co", "ai", "app", "dev", "health", "research",
     "us", "uk", "de", "fr", "ca", "au", "nz", "se", "no", "fi", "nl", "ch", "it", "es", "dk", "ie", "be", "at", "jp", "kr", "sg",
     "in", "br", "mx", "za", "is", "cz", "pl", "il", "gr", "ru", "ua", "pt", "ar", "tr", "cl", "my", "th", "hk", "ae"]
 
-    func validateURL(_ urlString: String) -> ValidationResult {
+    static func validateURL(_ urlString: String) -> ValidationResult {
         let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Check for https://
@@ -66,7 +65,7 @@ class URLStringCheck {
         return ValidationResult(isValid: true, errorMessage: nil)
     }
 
-    func validatePartialURL(_ urlString: String) -> ValidationResult {
+    static func validatePartialURL(_ urlString: String) -> ValidationResult {
         let partialString = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if partialString.isEmpty {

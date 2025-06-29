@@ -20,6 +20,11 @@ enum HealthCommunicationError: Error {
 }
 
 class HealthDataCommunicationService {
+
+    static let shared = HealthDataCommunicationService()
+
+    private init() {}
+
     private static let baseURL = "http://localhost:8000"  // Local development
 
     func analyzeHealthData(csvFilePath: String, question: String?) async throws -> String {
