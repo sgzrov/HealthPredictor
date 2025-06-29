@@ -2,7 +2,7 @@
 //  URLExtensionCheck.swift
 //  HealthPredictor
 //
-//  Updated for meta-refresh redirect support
+//  Created by Stephan  on 01.06.2025.
 //
 
 import Foundation
