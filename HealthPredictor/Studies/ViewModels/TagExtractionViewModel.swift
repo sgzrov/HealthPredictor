@@ -8,8 +8,6 @@
 import Foundation
 import NaturalLanguage
 import SwiftUI
-import PDFKit
-import SwiftSoup
 
 @MainActor
 class TagExtractionViewModel: ImportURLViewModel {
@@ -19,6 +17,7 @@ class TagExtractionViewModel: ImportURLViewModel {
     @Published var isExtractingTags: Bool = false
 
     private var tagExtractionTask: Task<Void, Never>?
+    private let textExtractionService = TextExtractionService.shared
 
     override func validateFileType(url: URL) async {
         await super.validateFileType(url: url)
@@ -31,49 +30,13 @@ class TagExtractionViewModel: ImportURLViewModel {
         }
     }
 
-    private func extractTextFromHTML(_ htmlString: String) -> String {
-        do {
-            let doc = try SwiftSoup.parse(htmlString)
-
-            try doc.select("nav, footer, script, style, header, aside, form, noscript").remove()
-            try doc.select("a[href*='pdf'], a[href*='download'], .references, .ref-list").remove()
-
-            if let main = try? doc.select("main, article, .main-content, .article").first() {
-                let mainText = try main.text()
-                if !mainText.isEmpty {
-                    return mainText
-                }
-            }
-
-            if let bodyText = try doc.body()?.text(), !bodyText.isEmpty {
-                return bodyText
-            }
-        } catch {
-            print("SwiftSoup HTML extraction failed: \(error)")
-        }
-
-        // If SwiftSoup fails, we fallback to our old regex-based parsing
-        var text = htmlString
-            .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: "&nbsp;", with: " ")
-            .replacingOccurrences(of: "&amp;", with: "&")
-            .replacingOccurrences(of: "&lt;", with: "<")
-            .replacingOccurrences(of: "&gt;", with: ">")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .replacingOccurrences(of: "&#39;", with: "'")
-
-        text = text.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.joined(separator: " ")
-        return text
-    }
-
     private func extractTags(from url: URL) async {
         isExtractingTags = true
         topTags = []
         visibleTags = []
 
         do {
-            let data = try await fetchData(for: url)
-            let text = extractText(from: data, isPDF: isPDF, isHTML: isHTML)
+            let text = try await textExtractionService.extractText(from: url)
             let tags = extractHealthTags(from: text)
             await updateVisibleTags(with: tags)
         } catch {
@@ -81,34 +44,6 @@ class TagExtractionViewModel: ImportURLViewModel {
         }
 
         isExtractingTags = false
-    }
-
-    func fetchData(for url: URL) async throws -> Data {
-        if url.isFileURL {
-            return try Data(contentsOf: url)
-        } else {
-            let (fetchedData, _) = try await CloudflareCheck.shared.makeRequest(to: url)
-            return fetchedData
-        }
-    }
-
-    func extractText(from data: Data, isPDF: Bool, isHTML: Bool) -> String {
-        if isPDF {
-            if let pdfDoc = PDFDocument(data: data) {
-                return (0..<pdfDoc.pageCount).compactMap { pdfDoc.page(at: $0)?.string }.joined(separator: " ")
-            } else {
-                print("Failed to load PDFDocument.") // Debug print
-                return ""
-            }
-        } else if isHTML {
-            if let htmlString = String(data: data, encoding: .utf8) {
-                return extractTextFromHTML(htmlString)
-            } else {
-                print("Failed to decode HTML") // Debug print
-                return ""
-            }
-        }
-        return ""
     }
 
     private func extractHealthTags(from text: String) -> [Tag] {
