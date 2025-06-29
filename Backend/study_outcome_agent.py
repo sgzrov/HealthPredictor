@@ -1,6 +1,7 @@
 import requests
 import logging
 from typing import BinaryIO
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,22 @@ class StudyOutcomeAgent:
         instructions = prompt if prompt is not None else self.prompt
 
         try:
+            # Log user_input
+            logger.info(f"user_input length: {len(user_input)}")
+            logger.info(f"user_input sample: {user_input[:200]}")
+
+            # Log file size and sample
+            try:
+                file_obj.seek(0, os.SEEK_END)
+                file_size = file_obj.tell()
+                file_obj.seek(0)
+                file_sample = file_obj.read(500)
+                file_obj.seek(0)
+                logger.info(f"CSV file size: {file_size} bytes")
+                logger.info(f"CSV file sample: {file_sample[:200]}")
+            except Exception as e:
+                logger.warning(f"Could not log file sample/size: {e}")
+
             container_payload = {"name": "Outcome Data Container"}
             logger.debug(f"Creating container with payload: {container_payload}")
             container_resp = requests.post(
@@ -66,7 +83,7 @@ class StudyOutcomeAgent:
                 "instructions": instructions,
                 "input": user_input
             }
-            logger.debug(f"Sending responses payload: {responses_payload}")
+            logger.info(f"Sending responses payload: {responses_payload}")
             response = requests.post(
                 f"{self.base_url}/responses",
                 headers = {**self.headers, "Content-Type": "application/json"},
@@ -85,6 +102,9 @@ class StudyOutcomeAgent:
                             return content["text"]
                         else:
                             logger.warning(f"Unexpected content type: {content.get('type')}")
+
+                if "text" in response_data and response_data["text"]:
+                    return response_data["text"]
             except (IndexError, KeyError, TypeError) as e:
                 logger.warning(f"Error parsing nested output structure: {e}")
 
