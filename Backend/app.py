@@ -3,14 +3,16 @@ import logging
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from typing import Optional
 
 from chat_agent import ChatAgent
 from study_outcome_agent import StudyOutcomeAgent
 from study_summary_agent import StudySummaryAgent
 from code_interpreter_selector import CodeInterpreterSelector
 
-logging.basicConfig(level = logging.INFO)
+logging.basicConfig(level = logging.DEBUG)
 logger = logging.getLogger(__name__)
+logging.getLogger('chat_agent').setLevel(logging.DEBUG)
 
 load_dotenv()
 
@@ -27,7 +29,6 @@ code_interpreter_selector_prompt_path = os.path.join(os.path.dirname(__file__), 
 simple_chat_prompt_path = os.path.join(os.path.dirname(__file__), "Prompts", "SimpleChatPrompt.txt")
 
 chat_agent = ChatAgent(api_key, prompt_path = chat_prompt_path)
-simple_chat_agent = ChatAgent(api_key, prompt_path = simple_chat_prompt_path)
 summary_agent = StudySummaryAgent(api_key, prompt_path = summary_prompt_path)
 outcome_agent = StudyOutcomeAgent(api_key, prompt_path = outcome_prompt_path)
 selector_agent = CodeInterpreterSelector(api_key, prompt_path = code_interpreter_selector_prompt_path)
@@ -40,11 +41,13 @@ class SelectorRequest(BaseModel):
 
 class SimpleChatRequest(BaseModel):
     user_input: str
+    conversation_id: Optional[str] = None
 
 @app.post("/analyze-health-data/")
-async def analyze_health_data(file: UploadFile = File(...), user_input: str = Form(...)):
+async def analyze_health_data(file: UploadFile = File(...), user_input: str = Form(...), conversation_id: str = Form(None)):
+    logger.debug(f"[API DEBUG] /analyze-health-data/ called with conversation_id = {conversation_id}, user_input = {user_input}")
     try:
-        analysis = chat_agent.analyze_health_data(file.file, user_input)
+        analysis = chat_agent.analyze_health_data(file.file, user_input, conversation_id = conversation_id)
         logger.info("Health analysis completed.")
         return {"analysis": analysis}
     except Exception as e:
@@ -82,8 +85,9 @@ async def should_use_code_interpreter(request: SelectorRequest):
 
 @app.post("/simple-chat/")
 async def simple_chat(request: SimpleChatRequest):
+    logger.debug(f"[API DEBUG] /simple-chat/ called with conversation_id={request.conversation_id}, user_input={request.user_input}")
     try:
-        response = simple_chat_agent.simple_chat(request.user_input)
+        response = chat_agent.simple_chat(request.user_input, conversation_id = request.conversation_id)
         return {"response": response}
     except Exception as e:
         logger.exception("Simple chat failed.")
