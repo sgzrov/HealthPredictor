@@ -33,7 +33,7 @@ class SummaryViewModel: ObservableObject {
             }
 
             self.extractedText = text
-            let summary = try await healthDataCommunicationService.summarizeStudy(studyText: text)
+            let summary = try await healthDataCommunicationService.summarizeStudy(userInput: text)
             self.summarizedText = summary
             isSummarizing = false
             return summary

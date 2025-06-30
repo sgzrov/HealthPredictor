@@ -34,7 +34,7 @@ class OutcomeViewModel: ObservableObject {
             let csvPath = try await generateCSVAsync()
             let outcome = try await healthDataCommunicationService.generateOutcome(
                 csvFilePath: csvPath,
-                studyText: studyText
+                userInput: studyText
             )
             self.outcomeText = outcome
             isGenerating = false
