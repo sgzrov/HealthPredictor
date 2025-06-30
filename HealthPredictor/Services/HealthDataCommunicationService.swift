@@ -27,7 +27,7 @@ class HealthDataCommunicationService {
 
     private static let baseURL = "http://localhost:8000"  // Local development
 
-    func analyzeHealthData(csvFilePath: String, question: String?) async throws -> String {
+    func analyzeHealthData(csvFilePath: String, userInput: String?) async throws -> String {
         guard let url = URL(string: "\(Self.baseURL)/analyze-health-data/") else {
             throw HealthCommunicationError.invalidURL
         }
@@ -35,7 +35,7 @@ class HealthDataCommunicationService {
             throw HealthCommunicationError.fileNotFound
         }
 
-        let request = try makeMultipartRequest(url: url, csvFilePath: csvFilePath, question: question)
+        let request = try makeMultipartRequest(url: url, csvFilePath: csvFilePath, userInput: userInput)
         let session = URLSession(configuration: .default)
         let (data, response) = try await session.data(for: request)
 
@@ -54,7 +54,7 @@ class HealthDataCommunicationService {
         }
     }
 
-    func generateOutcome(csvFilePath: String, studyText: String) async throws -> String {
+    func generateOutcome(csvFilePath: String, userInput: String) async throws -> String {
         guard let url = URL(string: "\(Self.baseURL)/generate-outcome/") else {
             throw HealthCommunicationError.invalidURL
         }
@@ -62,7 +62,7 @@ class HealthDataCommunicationService {
             throw HealthCommunicationError.fileNotFound
         }
 
-        let request = try makeMultipartRequest(url: url, csvFilePath: csvFilePath, studyText: studyText)
+        let request = try makeMultipartRequest(url: url, csvFilePath: csvFilePath, userInput: userInput)
         let session = URLSession(configuration: .default)
         let (data, response) = try await session.data(for: request)
 
@@ -73,7 +73,7 @@ class HealthDataCommunicationService {
         return result["outcome"] ?? ""
     }
 
-    func summarizeStudy(studyText: String) async throws -> String {
+    func summarizeStudy(userInput: String) async throws -> String {
         guard let url = URL(string: "\(Self.baseURL)/summarize-study/") else {
             throw HealthCommunicationError.invalidURL
         }
@@ -82,7 +82,7 @@ class HealthDataCommunicationService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let body = ["text": studyText]
+        let body = ["text": userInput]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let config = URLSessionConfiguration.default
@@ -98,7 +98,53 @@ class HealthDataCommunicationService {
         return result["summary"] ?? ""
     }
 
-    private func makeMultipartRequest(url: URL, csvFilePath: String, question: String? = nil, studyText: String? = nil) throws -> URLRequest {
+    func shouldUseCodeInterpreter(userInput: String) async throws -> String {
+        guard let url = URL(string: "\(Self.baseURL)/should-use-code-interpreter/") else {
+            throw HealthCommunicationError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body = ["user_input": userInput]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let session = URLSession(configuration: .default)
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+            throw HealthCommunicationError.invalidResponse
+        }
+
+        let result = try JSONDecoder().decode([String: String].self, from: data)
+        return result["use_code_interpreter"] ?? "no"
+    }
+
+    func simpleChat(userInput: String) async throws -> String {
+        guard let url = URL(string: "\(Self.baseURL)/simple-chat/") else {
+            throw HealthCommunicationError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body = ["user_input": userInput]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let session = URLSession(configuration: .default)
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
+            throw HealthCommunicationError.invalidResponse
+        }
+
+        let result = try JSONDecoder().decode([String: String].self, from: data)
+        return result["response"] ?? ""
+    }
+
+    private func makeMultipartRequest(url: URL, csvFilePath: String, userInput: String? = nil, studyText: String? = nil) throws -> URLRequest {
         let boundary = UUID().uuidString
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -112,10 +158,10 @@ class HealthDataCommunicationService {
         body.append(csvData)
         body.append("\r\n")
 
-        if let question = question, !question.isEmpty {
+        if let userInput = userInput, !userInput.isEmpty {
             body.append("--\(boundary)\r\n")
-            body.append("Content-Disposition: form-data; name=\"question\"\r\n\r\n")
-            body.append(question)
+            body.append("Content-Disposition: form-data; name=\"user_input\"\r\n\r\n")
+            body.append(userInput)
             body.append("\r\n")
         }
 
