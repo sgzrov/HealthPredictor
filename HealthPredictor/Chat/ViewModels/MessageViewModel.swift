@@ -36,19 +36,29 @@ class MessageViewModel: ObservableObject {
 
     private func sendToBackend(userInput: String) async {
         do {
-            let csvPath = try await generateCSVAsync()
+            let needsCodeInterpreter = try await checkIfCodeInterpreterNeeded(message: userInput)
 
-            let response = try await healthDataCommunicationService.analyzeHealthData(
-                csvFilePath: csvPath,
-                question: userInput
-            )
+            if needsCodeInterpreter {
+                let csvPath = try await generateCSVAsync()
+                let response = try await healthDataCommunicationService.analyzeHealthData(
+                    csvFilePath: csvPath,
+                    userInput: userInput
+                )
 
-            let assistantMessage = ChatMessage(
-                content: response,
-                sender: .assistant
-            )
+                let assistantMessage = ChatMessage(
+                    content: response,
+                    sender: .assistant
+                )
+                self.messages.append(assistantMessage)
+            } else {
+                let response = try await healthDataCommunicationService.simpleChat(userInput: userInput)
 
-            self.messages.append(assistantMessage)
+                let assistantMessage = ChatMessage(
+                    content: response,
+                    sender: .assistant
+                )
+                self.messages.append(assistantMessage)
+            }
         } catch {
             let errorMessage = ChatMessage(
                 content: "I'm having trouble processing your request right now. Please try again later.",
@@ -59,6 +69,11 @@ class MessageViewModel: ObservableObject {
         }
 
         isLoading = false
+    }
+
+    private func checkIfCodeInterpreterNeeded(message: String) async throws -> Bool {
+        let result = try await healthDataCommunicationService.shouldUseCodeInterpreter(userInput: message)
+        return result == "yes"
     }
 
     private func generateCSVAsync() async throws -> String {
