@@ -89,7 +89,38 @@ class ChatAgent:
             logger.debug(f"Full response data: {response_data}")
 
             raise Exception("Health data processing failed: could not extract response.")
+        except Exception as e:
+            logger.error(f"OpenAI error: {e}")
+            raise
 
+    def simple_chat(self, user_input: str, prompt = None) -> str:
+        instructions = prompt if prompt is not None else self.prompt
+
+        payload = {
+            "model": self.model,
+            "instructions": instructions,
+            "input": user_input
+        }
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/responses",
+                headers = {**self.headers, "Content-Type": "application/json"},
+                json = payload
+            )
+            response.raise_for_status()
+
+            data = response.json()
+            logger.info(f"Response received: {data}")
+
+            if "output" in data and data["output"]:
+                output = data["output"][0]
+                if "content" in output and output["content"]:
+                    content = output["content"][0]
+                    if content.get("type") == "output_text" and content.get("text"):
+                        return content["text"]
+
+            raise Exception("Simple chat failed: could not extract response.")
         except Exception as e:
             logger.error(f"OpenAI error: {e}")
             raise
