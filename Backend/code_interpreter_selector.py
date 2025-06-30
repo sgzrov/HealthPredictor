@@ -29,7 +29,6 @@ class CodeInterpreterSelector:
                 json = payload
             )
             response.raise_for_status()
-
             data = response.json()
             logger.info(f"Response received: {data}")
 
