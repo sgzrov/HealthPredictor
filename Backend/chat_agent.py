@@ -1,6 +1,6 @@
 import logging
 import requests
-from typing import BinaryIO
+from typing import BinaryIO, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -10,13 +10,63 @@ class ChatAgent:
         self.model = "gpt-4.1-mini"
         self.base_url = "https://api.openai.com/v1"
         self.headers = {"Authorization": f"Bearer {self.api_key}"}
+        self.conversation_histories = {}
 
         with open(prompt_path, "r", encoding = "utf-8") as f:
             self.prompt = f.read()
 
-    def analyze_health_data(self, file_obj: BinaryIO, user_input: str, prompt = None) -> str:
+    def _get_history_context(self, conversation_id: Optional[str], latest_user_input: str) -> Tuple[str, list]:
+        history = []
+
+        if conversation_id:
+            history = self.conversation_histories.get(conversation_id, [])
+        history.append({"role": "user", "content": latest_user_input})
+
+        conversation_context = ""
+        for turn in history:
+            role = "User" if turn["role"] == "user" else "Assistant"
+            conversation_context += f"{role}: {turn['content']}\n"
+        logger.debug(f"[DEBUG] Conversation context for LLM (conversation_id = {conversation_id}):\n{conversation_context.strip()}")
+        return conversation_context.strip(), history
+
+    def simple_chat(self, user_input: str, prompt = None, conversation_id: Optional[str] = None) -> str:
         instructions = prompt if prompt is not None else self.prompt
 
+        conversation_context, history = self._get_history_context(conversation_id, user_input)
+        payload = {
+            "model": self.model,
+            "instructions": instructions,
+            "input": conversation_context
+        }
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/responses",
+                headers = {**self.headers, "Content-Type": "application/json"},
+                json = payload
+            )
+            response.raise_for_status()
+            data = response.json()
+            logger.info(f"Response received: {data}")
+            if "output" in data and data["output"]:
+                output = data["output"][0]
+                if "content" in output and output["content"]:
+                    content = output["content"][0]
+                    if content.get("type") == "output_text" and content.get("text"):
+                        assistant_message = content["text"]
+                        if conversation_id:
+                            history.append({"role": "assistant", "content": assistant_message})
+                            self.conversation_histories[conversation_id] = history
+                        return assistant_message
+            raise Exception("Simple chat failed: could not extract response.")
+        except Exception as e:
+            logger.error(f"OpenAI error: {e}")
+            raise
+
+    def analyze_health_data(self, file_obj: BinaryIO, user_input: str, prompt = None, conversation_id: Optional[str] = None) -> str:
+        instructions = prompt if prompt is not None else self.prompt
+
+        conversation_context, history = self._get_history_context(conversation_id, user_input)
         try:
             container_payload = {"name": "Chat Data Container"}
             container_resp = requests.post(
@@ -26,7 +76,6 @@ class ChatAgent:
             )
             container_resp.raise_for_status()
             container_id = container_resp.json()["id"]
-
             files = {"file": ("user_health_data.csv", file_obj, "text/csv")}
             data = {"purpose": "assistants"}
             file_upload_resp = requests.post(
@@ -37,7 +86,6 @@ class ChatAgent:
             )
             file_upload_resp.raise_for_status()
             file_id = file_upload_resp.json()["id"]
-
             container_file_payload = {"file_id": file_id}
             upload_resp = requests.post(
                 f"{self.base_url}/containers/{container_id}/files",
@@ -45,7 +93,6 @@ class ChatAgent:
                 json = container_file_payload
             )
             upload_resp.raise_for_status()
-
             responses_payload = {
                 "model": self.model,
                 "tools": [
@@ -58,7 +105,7 @@ class ChatAgent:
                     }
                 ],
                 "instructions": instructions,
-                "input": user_input
+                "input": conversation_context
             }
             response = requests.post(
                 f"{self.base_url}/responses",
@@ -66,7 +113,6 @@ class ChatAgent:
                 json = responses_payload
             )
             response.raise_for_status()
-
             response_data = response.json()
             logger.debug(f"Response structure: {response_data.keys()}")
             try:
@@ -75,7 +121,11 @@ class ChatAgent:
                     if "content" in output and output["content"]:
                         content = output["content"][0]
                         if content.get("type") == "output_text" and content.get("text"):
-                            return content["text"]
+                            assistant_message = content["text"]
+                            if conversation_id:
+                                history.append({"role": "assistant", "content": assistant_message})
+                                self.conversation_histories[conversation_id] = history
+                            return assistant_message
                         else:
                             logger.warning(f"Unexpected content type: {content.get('type')}")
             except (IndexError, KeyError, TypeError) as e:
@@ -87,40 +137,7 @@ class ChatAgent:
             # Log the full response for debugging if we can't extract text
             logger.error(f"Could not extract text from response. Response keys: {list(response_data.keys())}")
             logger.debug(f"Full response data: {response_data}")
-
             raise Exception("Health data processing failed: could not extract response.")
-        except Exception as e:
-            logger.error(f"OpenAI error: {e}")
-            raise
-
-    def simple_chat(self, user_input: str, prompt = None) -> str:
-        instructions = prompt if prompt is not None else self.prompt
-
-        payload = {
-            "model": self.model,
-            "instructions": instructions,
-            "input": user_input
-        }
-
-        try:
-            response = requests.post(
-                f"{self.base_url}/responses",
-                headers = {**self.headers, "Content-Type": "application/json"},
-                json = payload
-            )
-            response.raise_for_status()
-
-            data = response.json()
-            logger.info(f"Response received: {data}")
-
-            if "output" in data and data["output"]:
-                output = data["output"][0]
-                if "content" in output and output["content"]:
-                    content = output["content"][0]
-                    if content.get("type") == "output_text" and content.get("text"):
-                        return content["text"]
-
-            raise Exception("Simple chat failed: could not extract response.")
         except Exception as e:
             logger.error(f"OpenAI error: {e}")
             raise

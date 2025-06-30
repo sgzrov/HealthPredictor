@@ -17,6 +17,7 @@ class MessageViewModel: ObservableObject {
 
     private let healthDataCommunicationService = HealthDataCommunicationService.shared
     private let healthFileCreationService = HealthFileCreationService.shared
+    private let conversationId = UUID().uuidString
 
     func sendMessage() {
         guard !inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
@@ -42,7 +43,8 @@ class MessageViewModel: ObservableObject {
                 let csvPath = try await generateCSVAsync()
                 let response = try await healthDataCommunicationService.analyzeHealthData(
                     csvFilePath: csvPath,
-                    userInput: userInput
+                    userInput: userInput,
+                    conversationId: conversationId
                 )
 
                 let assistantMessage = ChatMessage(
@@ -51,7 +53,7 @@ class MessageViewModel: ObservableObject {
                 )
                 self.messages.append(assistantMessage)
             } else {
-                let response = try await healthDataCommunicationService.simpleChat(userInput: userInput)
+                let response = try await healthDataCommunicationService.simpleChat(userInput: userInput, conversationId: conversationId)
 
                 let assistantMessage = ChatMessage(
                     content: response,
