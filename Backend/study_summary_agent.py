@@ -15,11 +15,13 @@ class StudySummaryAgent:
 
     def summarize(self, text, prompt = None):
         instructions = prompt if prompt is not None else self.prompt
+
         payload = {
             "model": self.model,
             "instructions": instructions,
             "input": text
         }
+
         try:
             logger.info(f"Attempting to summarize text of length: {len(text)}")
             response = requests.post(
