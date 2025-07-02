@@ -1,14 +1,13 @@
+import openai
 import logging
-import requests
 
 logger = logging.getLogger(__name__)
 
 class CodeInterpreterSelector:
     def __init__(self, api_key, prompt_path):
         self.api_key = api_key
-        self.model = "gpt-4.1-mini"
-        self.base_url = "https://api.openai.com/v1"
-        self.headers = {"Authorization": f"Bearer {self.api_key}"}
+        self.model = "gpt-4o-mini"
+        self.client = openai.OpenAI(api_key = api_key)
 
         with open(prompt_path, "r", encoding = "utf-8") as f:
             self.prompt = f.read()
@@ -16,32 +15,24 @@ class CodeInterpreterSelector:
     def should_use_code_interpreter(self, user_input: str, prompt = None) -> str:
         instructions = prompt if prompt is not None else self.prompt
 
-        payload = {
-            "model": self.model,
-            "instructions": instructions,
-            "input": user_input
-        }
-
         try:
-            response = requests.post(
-                f"{self.base_url}/responses",
-                headers = {**self.headers, "Content-Type": "application/json"},
-                json = payload
+            response = self.client.responses.create(
+                model = self.model,
+                input = f"{instructions}\n User input: {user_input}"
             )
-            response.raise_for_status()
-            data = response.json()
-            logger.info(f"Response received: {data}")
 
-            if "output" in data and data["output"]:
-                output = data["output"][0]
-                if "content" in output and output["content"]:
-                    content = output["content"][0]
-                    if content.get("type") == "output_text" and content.get("text"):
-                        answer = content["text"].strip().lower()
-                        return "yes" if "yes" in answer else "no"
+            for index, out_item in enumerate(response.output):
+                if getattr(out_item, "type", None) == "message":
+                    content_elements = getattr(out_item, "content", [])
+                    for element in content_elements:
+                        text = getattr(element, "text", None)
+                        if text:
+                            answer = text.strip().lower()
+                            logger.info(f"Code interpreter selection response: {answer}")
+                            return "yes" if "yes" in answer else "no"
 
-            raise Exception("Code interpreter selection failed: could not extract response.")
+            raise Exception("No response content received from OpenAI")
 
         except Exception as e:
-            logging.error(f"OpenAI error: {e}")
+            logger.error(f"OpenAI error: {e}")
             raise

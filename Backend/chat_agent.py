@@ -1,5 +1,5 @@
 import logging
-import requests
+import openai
 from typing import BinaryIO, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -7,9 +7,8 @@ logger = logging.getLogger(__name__)
 class ChatAgent:
     def __init__(self, api_key, prompt_path):
         self.api_key = api_key
-        self.model = "gpt-4.1-mini"
-        self.base_url = "https://api.openai.com/v1"
-        self.headers = {"Authorization": f"Bearer {self.api_key}"}
+        self.model = "gpt-4o-mini"
+        self.client = openai.OpenAI(api_key = api_key)
         self.conversation_histories = {}
 
         with open(prompt_path, "r", encoding = "utf-8") as f:
@@ -31,113 +30,69 @@ class ChatAgent:
 
     def simple_chat(self, user_input: str, prompt = None, conversation_id: Optional[str] = None) -> str:
         instructions = prompt if prompt is not None else self.prompt
-
         conversation_context, history = self._get_history_context(conversation_id, user_input)
-        payload = {
-            "model": self.model,
-            "instructions": instructions,
-            "input": conversation_context
-        }
 
         try:
-            response = requests.post(
-                f"{self.base_url}/responses",
-                headers = {**self.headers, "Content-Type": "application/json"},
-                json = payload
+            response = self.client.responses.create(
+                model = self.model,
+                input = f"{instructions}\nConversation:\n{conversation_context}"
             )
-            response.raise_for_status()
-            data = response.json()
-            logger.info(f"Response received: {data}")
-            if "output" in data and data["output"]:
-                output = data["output"][0]
-                if "content" in output and output["content"]:
-                    content = output["content"][0]
-                    if content.get("type") == "output_text" and content.get("text"):
-                        assistant_message = content["text"]
-                        if conversation_id:
-                            history.append({"role": "assistant", "content": assistant_message})
-                            self.conversation_histories[conversation_id] = history
-                        return assistant_message
-            raise Exception("Simple chat failed: could not extract response.")
+
+            for index, out_item in enumerate(response.output):
+                if getattr(out_item, "type", None) == "message":
+                    content_elements = getattr(out_item, "content", [])
+                    for element in content_elements:
+                        text = getattr(element, "text", None)
+                        if text:
+                            if conversation_id:
+                                history.append({"role": "assistant", "content": text})
+                                self.conversation_histories[conversation_id] = history
+                            return text
+
+            raise Exception("No response content received from OpenAI")
+
         except Exception as e:
             logger.error(f"OpenAI error: {e}")
             raise
 
-    def analyze_health_data(self, file_obj: BinaryIO, user_input: str, prompt = None, conversation_id: Optional[str] = None) -> str:
+    def analyze_health_data(self, file_obj: BinaryIO, user_input: str, prompt=None, conversation_id: Optional[str] = None) -> str:
         instructions = prompt if prompt is not None else self.prompt
-
         conversation_context, history = self._get_history_context(conversation_id, user_input)
+
         try:
-            container_payload = {"name": "Chat Data Container"}
-            container_resp = requests.post(
-                f"{self.base_url}/containers",
-                headers = {**self.headers, "Content-Type": "application/json"},
-                json = container_payload
+            file_obj.seek(0)
+
+            file = self.client.files.create(
+                file = ("user_health_data.csv", file_obj, "text/csv"),
+                purpose = "assistants"
             )
-            container_resp.raise_for_status()
-            container_id = container_resp.json()["id"]
-            files = {"file": ("user_health_data.csv", file_obj, "text/csv")}
-            data = {"purpose": "assistants"}
-            file_upload_resp = requests.post(
-                f"{self.base_url}/files",
-                headers = self.headers,
-                files = files,
-                data = data
-            )
-            file_upload_resp.raise_for_status()
-            file_id = file_upload_resp.json()["id"]
-            container_file_payload = {"file_id": file_id}
-            upload_resp = requests.post(
-                f"{self.base_url}/containers/{container_id}/files",
-                headers = {**self.headers, "Content-Type": "application/json"},
-                json = container_file_payload
-            )
-            upload_resp.raise_for_status()
-            responses_payload = {
-                "model": self.model,
-                "tools": [
+
+            response = self.client.responses.create(
+                model = self.model,
+                tools = [
                     {
                         "type": "code_interpreter",
                         "container": {
                             "type": "auto",
-                            "file_ids": [file_id]
+                            "file_ids": [file.id]
                         }
                     }
                 ],
-                "instructions": instructions,
-                "input": conversation_context
-            }
-            response = requests.post(
-                f"{self.base_url}/responses",
-                headers = {**self.headers, "Content-Type": "application/json"},
-                json = responses_payload
+                instructions = instructions,
+                input = conversation_context
             )
-            response.raise_for_status()
-            response_data = response.json()
-            logger.debug(f"Response structure: {response_data.keys()}")
-            try:
-                if "output" in response_data and response_data["output"]:
-                    output = response_data["output"][0]
-                    if "content" in output and output["content"]:
-                        content = output["content"][0]
-                        if content.get("type") == "output_text" and content.get("text"):
-                            assistant_message = content["text"]
+
+            for index, out_item in enumerate(response.output):
+                if getattr(out_item, "type", None) == "message":
+                    content_elements = getattr(out_item, "content", [])
+                    for element in content_elements:
+                        text = getattr(element, "text", None)
+                        if text:
                             if conversation_id:
-                                history.append({"role": "assistant", "content": assistant_message})
+                                history.append({"role": "assistant", "content": text})
                                 self.conversation_histories[conversation_id] = history
-                            return assistant_message
-                        else:
-                            logger.warning(f"Unexpected content type: {content.get('type')}")
-            except (IndexError, KeyError, TypeError) as e:
-                logger.warning(f"Error parsing nested output structure: {e}")
-
-            if "text" in response_data and response_data["text"]:
-                return response_data["text"]
-
-            # Log the full response for debugging if we can't extract text
-            logger.error(f"Could not extract text from response. Response keys: {list(response_data.keys())}")
-            logger.debug(f"Full response data: {response_data}")
-            raise Exception("Health data processing failed: could not extract response.")
+                            return text
+            raise Exception("No response content received from OpenAI")
         except Exception as e:
             logger.error(f"OpenAI error: {e}")
             raise

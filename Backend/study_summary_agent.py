@@ -1,4 +1,4 @@
-import requests
+import openai
 import logging
 
 logger = logging.getLogger(__name__)
@@ -6,9 +6,8 @@ logger = logging.getLogger(__name__)
 class StudySummaryAgent:
     def __init__(self, api_key, prompt_path):
         self.api_key = api_key
-        self.model = "gpt-4.1-mini"
-        self.base_url = "https://api.openai.com/v1"
-        self.headers = {"Authorization": f"Bearer {self.api_key}"}
+        self.model = "gpt-4o-mini"
+        self.client = openai.OpenAI(api_key = api_key)
 
         with open(prompt_path, "r", encoding = "utf-8") as f:
             self.prompt = f.read()
@@ -16,32 +15,24 @@ class StudySummaryAgent:
     def summarize(self, text, prompt = None):
         instructions = prompt if prompt is not None else self.prompt
 
-        payload = {
-            "model": self.model,
-            "instructions": instructions,
-            "input": text
-        }
-
         try:
             logger.info(f"Attempting to summarize text of length: {len(text)}")
-            response = requests.post(
-                f"{self.base_url}/responses",
-                headers = {**self.headers, "Content-Type": "application/json"},
-                json = payload
+
+            response = self.client.responses.create(
+                model=self.model,
+                input=f"{instructions}\n\nText to summarize:\n{text}"
             )
-            response.raise_for_status()
 
-            data = response.json()
-            logger.info(f"Response received: {data}")
+            for index, out_item in enumerate(response.output):
+                if getattr(out_item, "type", None) == "message":
+                    content_elements = getattr(out_item, "content", [])
+                    for element in content_elements:
+                        text = getattr(element, "text", None)
+                        if text:
+                            logger.info(f"Summary generated successfully: {text[:100]}...")
+                            return text
 
-            if "output" in data and data["output"]:
-                output = data["output"][0]
-                if "content" in output and output["content"]:
-                    content = output["content"][0]
-                    if content.get("type") == "output_text" and content.get("text"):
-                        return content["text"]
-
-            raise Exception("Summary generation failed: could not extract response.")
+            raise Exception("No response content received from OpenAI")
 
         except Exception as e:
             logger.error(f"OpenAI error: {e}")
