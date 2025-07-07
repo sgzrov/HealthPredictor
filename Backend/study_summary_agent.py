@@ -1,39 +1,36 @@
 import openai
 import logging
+from typing import Optional, Any, Generator
 
 logger = logging.getLogger(__name__)
 
 class StudySummaryAgent:
-    def __init__(self, api_key, prompt_path):
+    def __init__(self, api_key: str, prompt_path: str, model: str = "gpt-4o-mini") -> None:
         self.api_key = api_key
-        self.model = "gpt-4o-mini"
+        self.model = model
         self.client = openai.OpenAI(api_key = api_key)
 
-        with open(prompt_path, "r", encoding = "utf-8") as f:
-            self.prompt = f.read()
+        try:
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                self.prompt = f.read()
+        except Exception as e:
+            logger.error(f"Error reading prompt file: {e}")
+            raise
 
-    def summarize(self, text, prompt = None):
+    def summarize_stream(self, text: str, prompt: Optional[str] = None) -> Generator[Any, None, None]:
         instructions = prompt if prompt is not None else self.prompt
 
         try:
-            logger.info(f"Attempting to summarize text of length: {len(text)}")
-
             response = self.client.responses.create(
-                model=self.model,
-                input=f"{instructions}\n\nText to summarize:\n{text}"
+                model = self.model,
+                input = f"{instructions}\n\nText to summarize:\n{text}",
+                stream = True
             )
-
-            for index, out_item in enumerate(response.output):
-                if getattr(out_item, "type", None) == "message":
-                    content_elements = getattr(out_item, "content", [])
-                    for element in content_elements:
-                        text = getattr(element, "text", None)
-                        if text:
-                            logger.info(f"Summary generated successfully: {text[:100]}...")
-                            return text
-
-            raise Exception("No response content received from OpenAI")
-
+            for chunk in response:
+                yield chunk
+        except openai.APIError as e:
+            logger.error(f"OpenAI API error: {e}")
+            raise
         except Exception as e:
-            logger.error(f"OpenAI error: {e}")
+            logger.error(f"Unexpected error in summarize_stream: {e}")
             raise
