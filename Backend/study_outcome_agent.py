@@ -1,42 +1,29 @@
 import openai
 import logging
-from typing import BinaryIO
-import os
+from typing import BinaryIO, Optional, Any, Generator
 
 logger = logging.getLogger(__name__)
 
 class StudyOutcomeAgent:
-    def __init__(self, api_key, prompt_path):
+    def __init__(self, api_key: str, prompt_path: str, model: str = "gpt-4o-mini") -> None:
         self.api_key = api_key
-        self.model = "gpt-4o-mini"
+        self.model = model
         self.client = openai.OpenAI(api_key=api_key)
 
-        with open(prompt_path, "r", encoding = "utf-8") as f:
-            self.prompt = f.read()
+        try:
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                self.prompt = f.read()
+        except Exception as e:
+            logger.error(f"Error reading prompt file: {e}")
+            raise
 
-    def generate_outcome(self, file_obj: BinaryIO, user_input: str, prompt = None) -> str:
+    def generate_outcome_stream(self, file_obj: BinaryIO, user_input: str, prompt: Optional[str] = None, filename: str = "user_health_data.csv") -> Generator[Any, None, None]:
         instructions = prompt if prompt is not None else self.prompt
 
         try:
-            # Log user_input
-            logger.info(f"user_input length: {len(user_input)}")
-            logger.info(f"user_input sample: {user_input[:200]}")
-
-            # Log file size and sample
-            try:
-                file_obj.seek(0, os.SEEK_END)
-                file_size = file_obj.tell()
-                file_obj.seek(0)
-                file_sample = file_obj.read(500)
-                file_obj.seek(0)
-                logger.info(f"CSV file size: {file_size} bytes")
-                logger.info(f"CSV file sample: {file_sample[:200]}")
-            except Exception as e:
-                logger.warning(f"Could not log file sample/size: {e}")
-
             file_obj.seek(0)
             file = self.client.files.create(
-                file = ("user_health_data.csv", file_obj, "text/csv"),
+                file = (filename, file_obj, "text/csv"),
                 purpose = "assistants"
             )
 
@@ -52,20 +39,15 @@ class StudyOutcomeAgent:
                     }
                 ],
                 instructions = instructions,
-                input = user_input
+                input = user_input,
+                stream = True
             )
 
-            for index, out_item in enumerate(response.output):
-                if getattr(out_item, "type", None) == "message":
-                    content_elements = getattr(out_item, "content", [])
-                    for element in content_elements:
-                        text = getattr(element, "text", None)
-                        if text:
-                            logger.info(f"Outcome generated successfully: {text[:100]}...")
-                            return text
-
-            raise Exception("No response content received from OpenAI")
-
+            for chunk in response:
+                yield chunk
+        except openai.APIError as e:
+            logger.error(f"OpenAI API error: {e}")
+            raise
         except Exception as e:
-            logger.error(f"OpenAI error: {e}")
+            logger.error(f"Unexpected error in generate_outcome_stream: {e}")
             raise
