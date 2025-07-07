@@ -32,13 +32,24 @@ class OutcomeViewModel: ObservableObject {
             }
 
             let csvPath = try await generateCSVAsync()
-            let outcome = try await healthDataCommunicationService.generateOutcome(
+            var fullOutcome = ""
+            let stream = try await healthDataCommunicationService.generateOutcomeStream(
                 csvFilePath: csvPath,
                 userInput: studyText
             )
-            self.outcomeText = outcome
+            for await chunk in stream {
+                if chunk.hasPrefix("Error: ") {
+                    self.errorMessage = chunk
+                    isGenerating = false
+                    return nil
+                }
+                fullOutcome += chunk
+                self.outcomeText = fullOutcome
+
+                try await Task.sleep(nanoseconds: 10_000_000)
+            }
             isGenerating = false
-            return outcome
+            return fullOutcome
         } catch {
             self.errorMessage = "Failed to generate insight: \(error.localizedDescription)"
             isGenerating = false

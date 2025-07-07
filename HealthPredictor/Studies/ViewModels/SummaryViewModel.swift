@@ -33,10 +33,21 @@ class SummaryViewModel: ObservableObject {
             }
 
             self.extractedText = text
-            let summary = try await healthDataCommunicationService.summarizeStudy(userInput: text)
-            self.summarizedText = summary
+            var fullSummary = ""
+            let stream = try await healthDataCommunicationService.summarizeStudyStream(userInput: text)
+            for await chunk in stream {
+                if chunk.hasPrefix("Error: ") {
+                    self.errorMessage = chunk
+                    isSummarizing = false
+                    return nil
+                }
+                fullSummary += chunk
+                self.summarizedText = fullSummary
+
+                try await Task.sleep(nanoseconds: 10_000_000)  // Add a small delay to make streaming visible
+            }
             isSummarizing = false
-            return summary
+            return fullSummary
         } catch {
             self.errorMessage = "Failed to summarize: \(error.localizedDescription)"
             print("Failed to summarize: \(error).")
