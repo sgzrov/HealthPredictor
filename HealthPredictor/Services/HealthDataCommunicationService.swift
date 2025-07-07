@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 struct HealthCommunicationResponse: Codable {
     let analysis: String
@@ -17,6 +18,21 @@ enum HealthCommunicationError: Error {
     case decodingError
     case fileNotFound
     case uploadFailed
+    case streamingError(String)
+}
+
+struct StreamingChunk: Codable {
+    let content: String?
+    let done: Bool
+    let error: String?
+}
+
+struct CodeInterpreterResponse: Codable {
+    let useCodeInterpreter: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case useCodeInterpreter = "use_code_interpreter"
+    }
 }
 
 class HealthDataCommunicationService {
@@ -27,101 +43,20 @@ class HealthDataCommunicationService {
 
     private static let baseURL = "http://localhost:8000"  // Local development
 
-    func analyzeHealthData(csvFilePath: String, userInput: String?, conversationId: String? = nil) async throws -> String {
+    func analyzeHealthDataStream(csvFilePath: String, userInput: String?, conversationId: String? = nil) async throws -> AsyncStream<String> {
         guard let url = URL(string: "\(Self.baseURL)/analyze-health-data/") else {
             throw HealthCommunicationError.invalidURL
         }
+
         guard FileManager.default.fileExists(atPath: csvFilePath) else {
             throw HealthCommunicationError.fileNotFound
         }
 
         let request = try makeMultipartRequest(url: url, csvFilePath: csvFilePath, userInput: userInput, conversationId: conversationId)
-        let session = URLSession(configuration: .default)
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            let debugBody = String(data: data, encoding: .utf8) ?? "n/a"
-            print("Health Analysis API Error: \(debugBody)")
-            throw HealthCommunicationError.invalidResponse
-        }
-
-        do {
-            let result = try JSONDecoder().decode(HealthCommunicationResponse.self, from: data)
-            return result.analysis
-        } catch {
-            print("Decoding error: \(error)")
-            throw HealthCommunicationError.decodingError
-        }
+        return try await streamSSE(request: request)
     }
 
-    func generateOutcome(csvFilePath: String, userInput: String) async throws -> String {
-        guard let url = URL(string: "\(Self.baseURL)/generate-outcome/") else {
-            throw HealthCommunicationError.invalidURL
-        }
-        guard FileManager.default.fileExists(atPath: csvFilePath) else {
-            throw HealthCommunicationError.fileNotFound
-        }
-
-        let request = try makeMultipartRequest(url: url, csvFilePath: csvFilePath, userInput: userInput)
-        let session = URLSession(configuration: .default)
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw HealthCommunicationError.invalidResponse
-        }
-        let result = try JSONDecoder().decode([String: String].self, from: data)
-        return result["outcome"] ?? ""
-    }
-
-    func summarizeStudy(userInput: String) async throws -> String {
-        guard let url = URL(string: "\(Self.baseURL)/summarize-study/") else {
-            throw HealthCommunicationError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let body = ["text": userInput]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 120 // 2 minutes
-        config.timeoutIntervalForResource = 180 // 3 minutes
-        let session = URLSession(configuration: config)
-
-        let (data, response) = try await session.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw HealthCommunicationError.invalidResponse
-        }
-        let result = try JSONDecoder().decode([String: String].self, from: data)
-        return result["summary"] ?? ""
-    }
-
-    func shouldUseCodeInterpreter(userInput: String) async throws -> String {
-        guard let url = URL(string: "\(Self.baseURL)/should-use-code-interpreter/") else {
-            throw HealthCommunicationError.invalidURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let body = ["user_input": userInput]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let session = URLSession(configuration: .default)
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw HealthCommunicationError.invalidResponse
-        }
-
-        let result = try JSONDecoder().decode([String: String].self, from: data)
-        return result["use_code_interpreter"] ?? "no"
-    }
-
-    func simpleChat(userInput: String, conversationId: String? = nil) async throws -> String {
+    func simpleChatStream(userInput: String, conversationId: String? = nil) async throws -> AsyncStream<String> {
         guard let url = URL(string: "\(Self.baseURL)/simple-chat/") else {
             throw HealthCommunicationError.invalidURL
         }
@@ -136,59 +71,144 @@ class HealthDataCommunicationService {
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        let session = URLSession(configuration: .default)
-        let (data, response) = try await session.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
-            throw HealthCommunicationError.invalidResponse
-        }
-
-        let result = try JSONDecoder().decode([String: String].self, from: data)
-        return result["response"] ?? ""
+        return try await streamSSE(request: request)
     }
 
-    private func makeMultipartRequest(url: URL, csvFilePath: String, userInput: String? = nil, studyText: String? = nil, conversationId: String? = nil) throws -> URLRequest {
-        let boundary = UUID().uuidString
+    func generateOutcomeStream(csvFilePath: String, userInput: String) async throws -> AsyncStream<String> {
+        guard let url = URL(string: "\(Self.baseURL)/generate-outcome/") else {
+            throw HealthCommunicationError.invalidURL
+        }
+
+        guard FileManager.default.fileExists(atPath: csvFilePath) else {
+            throw HealthCommunicationError.fileNotFound
+        }
+
+        let request = try makeMultipartRequest(url: url, csvFilePath: csvFilePath, userInput: userInput)
+        return try await streamSSE(request: request)
+    }
+
+    func summarizeStudyStream(userInput: String) async throws -> AsyncStream<String> {
+        guard let url = URL(string: "\(Self.baseURL)/summarize-study/") else {
+            throw HealthCommunicationError.invalidURL
+        }
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = ["text": userInput]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        return try await streamSSE(request: request)
+    }
+
+    func shouldUseCodeInterpreter(userInput: String) async throws -> String {
+        guard let url = URL(string: "\(Self.baseURL)/should-use-code-interpreter/") else {
+            throw HealthCommunicationError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = ["user_input": userInput]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(CodeInterpreterResponse.self, from: data)
+        return response.useCodeInterpreter ? "yes" : "no"
+    }
+
+    private func streamSSE(request: URLRequest) async throws -> AsyncStream<String> {
+        return AsyncStream<String> { continuation in
+            let sseClient = SSEClientService()
+            let publisher = sseClient.connect(with: request)
+
+            let cancellable = publisher
+                .sink(
+                    receiveCompletion: { completion in
+                        switch completion {
+                        case .finished:
+                            continuation.finish()
+                        case .failure(let error):
+                            continuation.yield("Error: \(error.localizedDescription)")
+                            continuation.finish()
+                        }
+                    },
+                    receiveValue: { event in
+                        self.handleSSEEvent(event, continuation: continuation)
+                    }
+                )
+
+            continuation.onTermination = { _ in
+                cancellable.cancel()
+                sseClient.disconnect()
+            }
+        }
+    }
+
+    private func handleSSEEvent(_ event: SSEEvent, continuation: AsyncStream<String>.Continuation) {
+        switch event.type {
+        case .message:
+            let jsonData = Data(event.data.utf8)
+            if let chunk = try? JSONDecoder().decode(StreamingChunk.self, from: jsonData) {
+                if let error = chunk.error {
+                    continuation.yield("Error: \(error)")
+                    return
+                }
+                if let content = chunk.content, !content.isEmpty {
+                    continuation.yield(content)
+                }
+                if chunk.done {
+                    continuation.finish()
+                }
+            }
+        case .error:
+            continuation.yield("Error: \(event.data)")
+            continuation.finish()
+        case .done:
+            continuation.finish()
+        }
+    }
+
+    // Multipart request with file data, user input, conversation id, and boundaries (to separate each part)
+    private func makeMultipartRequest(url: URL, csvFilePath: String, userInput: String?, conversationId: String? = nil) throws -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+
+        let boundary = UUID().uuidString
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
         var body = Data()
-        let csvData = try Data(contentsOf: URL(fileURLWithPath: csvFilePath))
-        body.append("--\(boundary)\r\n")
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"user_health_data.csv\"\r\n")
-        body.append("Content-Type: text/csv\r\n\r\n")
-        body.append(csvData)
-        body.append("\r\n")
 
-        if let userInput = userInput, !userInput.isEmpty {
-            body.append("--\(boundary)\r\n")
-            body.append("Content-Disposition: form-data; name=\"user_input\"\r\n\r\n")
-            body.append(userInput)
-            body.append("\r\n")
+        let csvData = try Data(contentsOf: URL(fileURLWithPath: csvFilePath))
+        body.append(Data("--\(boundary)\r\n".utf8))
+        body.append(Data("Content-Disposition: form-data; name=\"file\"; filename=\"health_data.csv\"\r\n".utf8))
+        body.append(Data("Content-Type: text/csv\r\n\r\n".utf8))
+        body.append(csvData)
+        body.append(Data("\r\n".utf8))
+
+        if let userInput = userInput {
+            body.append(Data("--\(boundary)\r\n".utf8))
+            body.append(Data("Content-Disposition: form-data; name=\"user_input\"\r\n\r\n".utf8))
+            body.append(Data("\(userInput)\r\n".utf8))
         }
-        if let conversationId = conversationId, !conversationId.isEmpty {
-            body.append("--\(boundary)\r\n")
-            body.append("Content-Disposition: form-data; name=\"conversation_id\"\r\n\r\n")
-            body.append(conversationId)
-            body.append("\r\n")
+
+        if let conversationId = conversationId {
+            body.append(Data("--\(boundary)\r\n".utf8))
+            body.append(Data("Content-Disposition: form-data; name=\"conversation_id\"\r\n\r\n".utf8))
+            body.append(Data("\(conversationId)\r\n".utf8))
         }
-        if let studyText = studyText, !studyText.isEmpty {
-            body.append("--\(boundary)\r\n")
-            body.append("Content-Disposition: form-data; name=\"studytext\"\r\n\r\n")
-            body.append(studyText)
-            body.append("\r\n")
-        }
-        body.append("--\(boundary)--\r\n")
+
+        body.append(Data("--\(boundary)--\r\n".utf8))
         request.httpBody = body
+
         return request
     }
 }
 
 private extension Data {
     mutating func append(_ string: String) {
-        if let data = string.data(using: .utf8) {
-            append(data)
-        }
+        append(Data(string.utf8))
     }
 }
