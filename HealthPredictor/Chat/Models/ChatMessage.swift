@@ -12,22 +12,31 @@ enum MessageSender: Equatable {
     case assistant
 }
 
+enum MessageState: Equatable {
+    case complete
+    case streaming
+    case error
+}
+
 struct ChatMessage: Identifiable, Equatable {
     let id = UUID()
-    let content: String
+    var content: String
     let sender: MessageSender
     let timestamp: Date
+    var state: MessageState
 
-    init(content: String, sender: MessageSender, timestamp: Date = Date()) {
+    init(content: String, sender: MessageSender, timestamp: Date = Date(), state: MessageState = .complete) {
         self.content = content
         self.sender = sender
         self.timestamp = timestamp
+        self.state = state
     }
 
     static func == (lhs: ChatMessage, rhs: ChatMessage) -> Bool {
         lhs.id == rhs.id &&
         lhs.content == rhs.content &&
         lhs.sender == rhs.sender &&
-        lhs.timestamp == rhs.timestamp
+        lhs.timestamp == rhs.timestamp &&
+        lhs.state == rhs.state
     }
 }
