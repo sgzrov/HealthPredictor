@@ -19,6 +19,8 @@ class MessageViewModel: ObservableObject {
     private let healthFileCreationService = HealthFileCreationService.shared
     private let conversationId = UUID().uuidString
 
+    private static let streamingDelay: UInt64 = 10_000_000 // For slowed streaming (better UI)
+
     func sendMessage() {
         guard !inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard !isLoading else { return }
@@ -31,46 +33,76 @@ class MessageViewModel: ObservableObject {
         isLoading = true
 
         Task {
-            await sendToBackend(userInput: userInput)
+            try? await Task.sleep(nanoseconds: 550_000_000)
+            let thinkingMessage = ChatMessage(content: "", sender: .assistant, state: .streaming)
+            messages.append(thinkingMessage)
+
+            await processMessage(userInput: userInput)
         }
     }
 
-    private func sendToBackend(userInput: String) async {
+    private func processMessage(userInput: String) async {
         do {
             let needsCodeInterpreter = try await checkIfCodeInterpreterNeeded(message: userInput)
+            await sendStreamingMessage(userInput: userInput, needsCodeInterpreter: needsCodeInterpreter)
+        } catch {
+            addErrorMessage(error.localizedDescription)
+        }
+        isLoading = false
+    }
+
+    private func sendStreamingMessage(userInput: String, needsCodeInterpreter: Bool) async {
+        do {
+            let stream: AsyncStream<String>
 
             if needsCodeInterpreter {
                 let csvPath = try await generateCSVAsync()
-                let response = try await healthDataCommunicationService.analyzeHealthData(
+                stream = try await healthDataCommunicationService.analyzeHealthDataStream(
                     csvFilePath: csvPath,
                     userInput: userInput,
                     conversationId: conversationId
                 )
-
-                let assistantMessage = ChatMessage(
-                    content: response,
-                    sender: .assistant
-                )
-                self.messages.append(assistantMessage)
             } else {
-                let response = try await healthDataCommunicationService.simpleChat(userInput: userInput, conversationId: conversationId)
-
-                let assistantMessage = ChatMessage(
-                    content: response,
-                    sender: .assistant
+                stream = try await healthDataCommunicationService.simpleChatStream(
+                    userInput: userInput,
+                    conversationId: conversationId
                 )
-                self.messages.append(assistantMessage)
             }
-        } catch {
-            let errorMessage = ChatMessage(
-                content: "I'm having trouble processing your request right now. Please try again later.",
-                sender: .assistant
-            )
-            self.messages.append(errorMessage)
-            print("Backend API error: \(error.localizedDescription)")
-        }
 
-        isLoading = false
+            await handleStreamingResponse(stream: stream)
+        } catch {
+            let errorType = needsCodeInterpreter ? "Chat" : "Simple chat"
+            addErrorMessage("\(errorType) streaming error: \(error.localizedDescription)")
+        }
+    }
+
+    private func handleStreamingResponse(stream: AsyncStream<String>) async {
+        // Use the existing streaming message (last message in the array)
+        let messageIndex = messages.count - 1
+        var fullContent = ""
+
+        for await chunk in stream {
+            if chunk.hasPrefix("Error: ") {
+                messages[messageIndex].content = chunk
+                messages[messageIndex].state = .error
+                return
+            }
+
+            fullContent += chunk
+            messages[messageIndex].content = fullContent
+            try? await Task.sleep(nanoseconds: Self.streamingDelay)
+        }
+        messages[messageIndex].state = .complete
+    }
+
+    private func addErrorMessage(_ debugInfo: String) {
+        let errorMessage = ChatMessage(
+            content: "Sorry, I'm experiencing technical difficulties right now. Please try again later.",
+            sender: .assistant,
+            state: .error
+        )
+        messages.append(errorMessage)
+        print("Error: \(debugInfo)")
     }
 
     private func checkIfCodeInterpreterNeeded(message: String) async throws -> Bool {
@@ -87,6 +119,23 @@ class MessageViewModel: ObservableObject {
                     continuation.resume(throwing: HealthCommunicationError.fileNotFound)
                 }
             }
+        }
+    }
+
+    func clearMessages() {
+        messages.removeAll()
+    }
+
+    func retryLastMessage() {
+        guard let lastUserMessage = messages.last(where: { $0.sender == .user }) else { return }
+        if let lastUserIndex = messages.lastIndex(where: { $0.sender == .user }) {
+            messages = Array(messages.prefix(through: lastUserIndex))
+        }
+
+        isLoading = true
+
+        Task {
+            await processMessage(userInput: lastUserMessage.content)
         }
     }
 }
