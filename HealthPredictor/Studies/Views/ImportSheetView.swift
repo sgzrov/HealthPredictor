@@ -205,20 +205,37 @@ struct ImportSheetView: View {
                             print("Text extraction failed for URL: \(url)")
                             return
                         }
+                        print("Import: Text extraction successful, length: \(extractedText.count)")  // Debug
 
                         Task {
-                            let summary = await summaryVM.summarizeStudy(text: extractedText)
-                            await MainActor.run {
-                                if let summary = summary, !summary.isEmpty {
-                                    study.summary = summary
+                            print("Import: Starting summary generation...")  // Debug
+                            // Start streaming summary
+                            _ = await summaryVM.summarizeStudy(text: extractedText)
+                            // The summary will be updated in real-time via @Published property
+                        }
+                        Task {
+                            print("Import: Starting outcome generation...")  // Debug
+                            // Start streaming outcome
+                            _ = await outcomeVM.generateOutcome(from: extractedText)
+                            // The outcome will be updated in real-time via @Published property
+                        }
+
+                        Task {
+                            for await _ in summaryVM.$summarizedText.values {
+                                if let summary = summaryVM.summarizedText, !summary.isEmpty {
+                                    await MainActor.run {
+                                        study.summary = summary
+                                    }
                                 }
                             }
                         }
+
                         Task {
-                            let outcome = await outcomeVM.generateOutcome(from: extractedText)
-                            await MainActor.run {
-                                if let outcome = outcome, !outcome.isEmpty {
-                                    study.personalizedInsight = outcome
+                            for await _ in outcomeVM.$outcomeText.values {
+                                if let outcome = outcomeVM.outcomeText, !outcome.isEmpty {
+                                    await MainActor.run {
+                                        study.personalizedInsight = outcome
+                                    }
                                 }
                             }
                         }
