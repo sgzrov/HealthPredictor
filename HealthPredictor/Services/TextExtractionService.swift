@@ -18,7 +18,9 @@ class TextExtractionService {
     func extractText(from url: URL) async throws -> String {
         let data = try await fetchData(for: url)
         let contentType = try await determineContentType(url: url)
-        return extractTextFromSource(from: data, isPDF: contentType.isPDF, isHTML: contentType.isHTML)
+        let extractedText = extractTextFromSource(from: data, isPDF: contentType.isPDF, isHTML: contentType.isHTML)
+
+        return extractedText
     }
 
     private func fetchData(for url: URL) async throws -> Data {
@@ -26,6 +28,7 @@ class TextExtractionService {
             return try Data(contentsOf: url)
         } else {
             let (fetchedData, _) = try await CloudflareCheck.shared.makeRequest(to: url)
+
             return fetchedData
         }
     }
@@ -34,9 +37,11 @@ class TextExtractionService {
         if url.isFileURL {
             let data = try Data(contentsOf: url)
             let isPDF = PDFDocument(data: data) != nil
+
             return (isPDF: isPDF, isHTML: false)
         } else {
             let result = await URLExtensionCheck.checkContentType(url: url)
+
             return (isPDF: result.type == .pdf, isHTML: result.type == .html)
         }
     }
@@ -54,11 +59,13 @@ class TextExtractionService {
     private func extractTextFromPDF(_ data: Data) -> String {
         guard let pdfDocument = PDFDocument(data: data) else { return "" }
         var text = ""
+
         for pageIndex in 0..<pdfDocument.pageCount {
             if let page = pdfDocument.page(at: pageIndex) {
                 text += page.string ?? ""
             }
         }
+
         return text
     }
 
