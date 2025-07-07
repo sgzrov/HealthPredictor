@@ -32,6 +32,7 @@ struct ChatView: View {
 
             ChatInputView(
                 inputMessage: $messageVM.inputMessage,
+                isLoading: messageVM.isLoading,
                 onSend: {
                     messageVM.sendMessage()
                 }
