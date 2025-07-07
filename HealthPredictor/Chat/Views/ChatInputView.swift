@@ -13,6 +13,7 @@ struct ChatInputView: View {
 
     @FocusState private var isInputFocused: Bool
 
+    let isLoading: Bool
     let onSend: () -> Void
 
     var body: some View {
@@ -33,9 +34,12 @@ struct ChatInputView: View {
                 }) {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30))
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(
+                            (inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
+                            ? .gray : .accentColor
+                        )
                 }
-                .disabled(inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
@@ -45,8 +49,16 @@ struct ChatInputView: View {
 }
 
 #Preview {
-    ChatInputView(
-        inputMessage: .constant(""),
-        onSend: {}
-    )
+    VStack {
+        ChatInputView(
+            inputMessage: .constant(""),
+            isLoading: false,
+            onSend: {}
+        )
+        ChatInputView(
+            inputMessage: .constant(""),
+            isLoading: true,
+            onSend: {}
+        )
+    }
 }
