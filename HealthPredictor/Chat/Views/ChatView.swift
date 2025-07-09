@@ -9,7 +9,14 @@ import SwiftUI
 
 struct ChatView: View {
 
-    @StateObject private var messageVM = MessageViewModel()
+    @StateObject private var messageVM: MessageViewModel
+
+    @ObservedObject var session: ChatSession
+
+    init(session: ChatSession) {
+        self.session = session
+        self._messageVM = StateObject(wrappedValue: MessageViewModel(session: session))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,9 +46,11 @@ struct ChatView: View {
             )
         }
         .background(Color(.systemGroupedBackground))
+        .navigationTitle(session.title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 #Preview {
-    ChatView()
+    ChatView(session: ChatSession(title: "Test Chat"))
 }
