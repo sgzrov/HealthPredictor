@@ -23,7 +23,7 @@ struct StudiesHomeView: View {
         NavigationStack {
             ZStack {
                 Color(.systemGroupedBackground).ignoresSafeArea()
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading) {
 
                     HStack {
                         Button(action: {
@@ -49,29 +49,11 @@ struct StudiesHomeView: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading) {
                         Text("Studies")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
-
-                        HStack(spacing: 8) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundColor(Color(.tertiaryLabel))
-                                TextField("Search", text: $searchText)
-                            }
-                            .padding(6)
-                            .background(Color(.secondarySystemFill))
-                            .cornerRadius(10)
-                            .frame(maxWidth: .infinity)
-
-                            Button(action: {
-                                // Filter action
-                            }) {
-                                Image(systemName: "line.3.horizontal.decrease")
-                            }
-                        }
                     }
 
                     HStack(spacing: 8) {
