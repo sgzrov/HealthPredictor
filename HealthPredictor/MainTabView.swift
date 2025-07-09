@@ -20,12 +20,12 @@ struct MainTabView: View {
                     Image(systemName: "list.bullet.rectangle")
                     Text("Studies")
                 }
-            ChatView()
+            MainChatView()
                 .tabItem {
                     Image(systemName: "message")
                     Text("Chat")
                 }
-            
+
         }
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarBackground(Color.black.opacity(0.8), for: .tabBar)
