@@ -15,9 +15,15 @@ class MessageViewModel: ObservableObject {
     @Published var inputMessage: String = ""
     @Published var isLoading: Bool = false
 
+    private let session: ChatSession
     private let healthDataCommunicationService = HealthDataCommunicationService.shared
     private let healthFileCreationService = HealthFileCreationService.shared
     private let conversationId = UUID().uuidString
+
+    init(session: ChatSession) {
+        self.session = session
+        self.messages = session.messages
+    }
 
     private static let streamingDelay: UInt64 = 10_000_000 // For slowed streaming (better UI)
 
@@ -27,6 +33,7 @@ class MessageViewModel: ObservableObject {
 
         let userMessage = ChatMessage(content: inputMessage, sender: .user)
         messages.append(userMessage)
+        session.messages = messages
 
         let userInput = inputMessage
         inputMessage = ""
@@ -36,6 +43,7 @@ class MessageViewModel: ObservableObject {
             try? await Task.sleep(nanoseconds: 550_000_000)
             let thinkingMessage = ChatMessage(content: "", sender: .assistant, state: .streaming)
             messages.append(thinkingMessage)
+            session.messages = messages
 
             await processMessage(userInput: userInput)
         }
@@ -90,9 +98,11 @@ class MessageViewModel: ObservableObject {
 
             fullContent += chunk
             messages[messageIndex].content = fullContent
+            session.messages = messages
             try? await Task.sleep(nanoseconds: Self.streamingDelay)
         }
         messages[messageIndex].state = .complete
+        session.messages = messages
     }
 
     private func addErrorMessage(_ debugInfo: String) {
@@ -102,6 +112,7 @@ class MessageViewModel: ObservableObject {
             state: .error
         )
         messages.append(errorMessage)
+        session.messages = messages
         print("Error: \(debugInfo)")
     }
 
