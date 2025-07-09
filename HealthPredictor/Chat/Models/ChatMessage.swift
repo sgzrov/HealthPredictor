@@ -7,25 +7,26 @@
 
 import Foundation
 
-enum MessageSender: Equatable {
+enum MessageSender: String, Codable, Equatable {
     case user
     case assistant
 }
 
-enum MessageState: Equatable {
+enum MessageState: String, Codable, Equatable {
     case complete
     case streaming
     case error
 }
 
-struct ChatMessage: Identifiable, Equatable {
-    let id = UUID()
+struct ChatMessage: Identifiable, Equatable, Codable {
+    var id: UUID
     var content: String
     let sender: MessageSender
     let timestamp: Date
     var state: MessageState
 
-    init(content: String, sender: MessageSender, timestamp: Date = Date(), state: MessageState = .complete) {
+    init(id: UUID = UUID(), content: String, sender: MessageSender, timestamp: Date = Date(), state: MessageState = .complete) {
+        self.id = id
         self.content = content
         self.sender = sender
         self.timestamp = timestamp
