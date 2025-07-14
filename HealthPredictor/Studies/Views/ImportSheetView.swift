@@ -17,6 +17,8 @@ struct ImportSheetView: View {
     @Binding var showFileImporter: Bool
     @Binding var selectedFileURL: URL?
 
+    @FocusState private var isTextFieldFocused: Bool
+
     var onDismiss: () -> Void
     var onImport: (Study) -> Void = { _ in }
 
@@ -54,10 +56,7 @@ struct ImportSheetView: View {
                 }
                 .padding(.top, 6)
 
-                VStack {
-                    Text("📥")
-                        .font(.system(size: 60))
-                        .padding(.bottom, 8)
+                VStack(spacing: 24){
                     VStack {
                         Text("Import")
                             .font(.title)
@@ -66,21 +65,22 @@ struct ImportSheetView: View {
                             .font(.title)
                             .fontWeight(.bold)
                     }
-                    .padding(.bottom, 16)
-                    Text("Import studies to view how their results correlate with your health data.")
+                    .padding(.top, 70)
+                    Text("Import health studies to view how their findings correlate with your health data.")
                         .font(.headline)
                         .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)
-                        .padding(.horizontal, 58)
+                        .padding(.horizontal, 50)
                 }
-                .padding(.bottom, 30)
 
                 if selectedFileURL == nil {
-                    VStack(spacing: 8) {
+                    VStack {
                         HStack {
                             Image(systemName: "link")
                                 .foregroundColor(Color(.tertiaryLabel))
+
                             TextField("Paste URL here", text: $importVM.importInput)
+                                .focused($isTextFieldFocused)
                                 .autocapitalization(.none)
                                 .disableAutocorrection(true)
                                 .truncationMode(.middle)
@@ -92,6 +92,7 @@ struct ImportSheetView: View {
                                         }
                                     }
                                 }
+
                             if !importVM.importInput.isEmpty {
                                 Button(action: {
                                     importVM.clearInput()
@@ -101,9 +102,11 @@ struct ImportSheetView: View {
                                 }
                             }
                         }
-                        .padding(10)
+                        .padding(12)
                         .background(Color(.secondarySystemFill))
                         .cornerRadius(12)
+
+                        .padding(.top, 40)
 
                         if !importVM.errorMessage.isEmpty {
                             Text(importVM.errorMessage)
@@ -111,10 +114,9 @@ struct ImportSheetView: View {
                                 .font(.footnote)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.leading, 2)
+                                .padding(.top, 6)
                         }
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 2)
                 }
 
                 if let fileURL = selectedFileURL {
@@ -174,13 +176,20 @@ struct ImportSheetView: View {
 
                 if !importVM.topTags.isEmpty && importVM.errorMessage.isEmpty && (importVM.isFullyValidURL() || selectedFileURL != nil) {
                     HStack(spacing: 8) {
-                        ForEach(importVM.visibleTags) { tag in
-                            TagView(tag: tag)
+                        ForEach(importVM.visibleTags.indices, id: \.self) { idx in
+                            TagView(tag: importVM.visibleTags[idx])
                                 .transition(.scale.combined(with: .opacity))
+                                .onAppear {
+                                    if idx == 3 && importVM.visibleTags.count == 4 {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                            isTextFieldFocused = false
+                                        }
+                                    }
+                                }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 2)
                     .padding(.vertical, 12)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: importVM.visibleTags)
                 }
@@ -191,35 +200,32 @@ struct ImportSheetView: View {
                     let url = selectedFileURL ?? URL(string: importVM.importInput)!
                     let study = Study(
                         title: url.lastPathComponent,
-                        summary: "Loading...",
-                        personalizedInsight: "Loading...",
+                        summary: "",
+                        personalizedInsight: "",
                         sourceURL: url
                     )
                     onImport(study)
                     onDismiss()
 
-                    // Extract text once, then start two parallel processes
                     Task {
-                        let extractedText = try? await TextExtractionService.shared.extractText(from: url)
+                        let extractedText = try? await TextExtractionService.shared.extractText(from: url)  // Perform text extraction
+                        // Debug print
                         guard let extractedText, !extractedText.isEmpty else {
                             print("Text extraction failed for URL: \(url)")
                             return
                         }
-                        print("Import: Text extraction successful, length: \(extractedText.count)")  // Debug
 
+                        // Generate summary
                         Task {
-                            print("Import: Starting summary generation...")  // Debug
-                            // Start streaming summary
                             _ = await summaryVM.summarizeStudy(text: extractedText)
-                            // The summary will be updated in real-time via @Published property
-                        }
-                        Task {
-                            print("Import: Starting outcome generation...")  // Debug
-                            // Start streaming outcome
-                            _ = await outcomeVM.generateOutcome(from: extractedText)
-                            // The outcome will be updated in real-time via @Published property
                         }
 
+                        // Generate outcome
+                        Task {
+                            _ = await outcomeVM.generateOutcome(from: extractedText)
+                        }
+
+                        // Stream summary (part by part)
                         Task {
                             for await _ in summaryVM.$summarizedText.values {
                                 if let summary = summaryVM.summarizedText, !summary.isEmpty {
@@ -230,6 +236,7 @@ struct ImportSheetView: View {
                             }
                         }
 
+                        // Stream outcome (part by part)
                         Task {
                             for await _ in outcomeVM.$outcomeText.values {
                                 if let outcome = outcomeVM.outcomeText, !outcome.isEmpty {
@@ -241,7 +248,7 @@ struct ImportSheetView: View {
                         }
                     }
                 }) {
-                    Text("Import Study")
+                    Text("Import")
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -268,16 +275,19 @@ struct ImportSheetView: View {
                     summaryVM.isSummarizing
                     ? 0.5 : 1.0
                 )
-                .padding(.horizontal, 8)
                 .padding(.bottom, 24)
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
+        }
+        .ignoresSafeArea(.keyboard)
+        .onTapGesture {
+            isTextFieldFocused = false
         }
         .presentationDetents([.large])
         .animation(.easeInOut(duration: 0.3), value: selectedFileURL)
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.pdf, .plainText, .rtf, .text, .data], allowsMultipleSelection: false) { result in
             importVM.clearTags()
+
             switch result {
             case .success(let urls):
                 if let fileURL = urls.first {
