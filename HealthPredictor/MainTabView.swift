@@ -25,6 +25,11 @@ struct MainTabView: View {
                     Image(systemName: "message")
                     Text("Chat")
                 }
+            SettingsView()
+                .tabItem {
+                    Image(systemName: "gear")
+                    Text("Settings")
+                }
 
         }
         .toolbarBackground(.visible, for: .tabBar)
