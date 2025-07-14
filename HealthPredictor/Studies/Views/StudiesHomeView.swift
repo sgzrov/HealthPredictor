@@ -12,109 +12,22 @@ struct StudiesHomeView: View {
     @StateObject private var importVM = TagExtractionViewModel()
     @StateObject private var studiesVM = StudyViewModel()
 
-    @State private var searchText: String = ""
     @State private var showSheet: Bool = false
     @State private var showFileImporter: Bool = false
     @State private var selectedFileURL: URL?
-    @State private var currentStudy: Study = Study(title: "Test Study", summary: "This is a test study for development purposes.", personalizedInsight: "This is a test insight", sourceURL: URL(string: "https://example.com")!)
+    @State private var currentStudy: Study?
     @State private var navigateToStudy: Study?
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(.systemGroupedBackground).ignoresSafeArea()
-                VStack(alignment: .leading) {
 
-                    HStack {
-                        Button(action: {
-                            // Edit action
-                        }) {
-                            Text("Edit")
-                        }
-
-                        Spacer()
-
-                        Button(action: {
-                            showSheet = true
-                        }) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color(.secondarySystemFill))
-                                    .frame(width: 30, height: 30)
-                                Image(systemName: "plus")
-                                    .resizable()
-                                    .frame(width: 14, height: 14)
-                                    .foregroundColor(Color(.systemGroupedBackground))
-                            }
-                        }
-                    }
-
-                    VStack(alignment: .leading) {
-                        Text("Studies")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
-                    }
-
-                    HStack(spacing: 8) {
-                        Button(action: {
-                            studiesVM.selectedCategory = .recommended
-                        }) {
-                            Text("Recommended")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(studiesVM.selectedCategory == .recommended ? .white : .primary.opacity(0.5))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(studiesVM.selectedCategory == .recommended ? Color.accentColor : Color(.secondarySystemFill))
-                                .cornerRadius(16)
-                        }
-
-                        Button(action: {
-                            studiesVM.selectedCategory = .all
-                        }) {
-                            Text("All")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(studiesVM.selectedCategory == .all ? .white : .primary.opacity(0.5))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(studiesVM.selectedCategory == .all ? Color.accentColor : Color(.secondarySystemFill))
-                                .cornerRadius(16)
-                        }
-                    }
-
+                VStack(alignment: .leading, spacing: 20) {
                     ScrollView {
-                        LazyVStack(spacing: 12) {
-                            if studiesVM.selectedCategory == .recommended {
-                                if studiesVM.recommendedStudies.isEmpty {
-                                    VStack(spacing: 12) {
-                                        Text("No recommended studies.")
-                                            .font(.headline)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(.top, 40)
-                                }
-                            }
-
-                            ForEach(studiesVM.selectedCategory == .recommended ? studiesVM.recommendedStudies : studiesVM.allStudies) { study in
-                                NavigationLink(destination: StudyDetailedView(study: study)) {
-                                    StudyCardView(
-                                        study: study,
-                                        onRefreshSummary: {
-                                            studiesVM.updateSummary(for: study.id, summary: "Refreshing summary...")
-                                        },
-                                        onRefreshOutcome: {
-                                            studiesVM.updateOutcome(for: study.id, outcome: "Refreshing outcome...")
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                        .padding(.top, 8)
+                        StudiesListView(studies: studiesVM.allStudies)
                     }
                 }
-                .padding(.horizontal, 16)
             }
             .navigationDestination(item: $navigateToStudy) { study in
                 StudyDetailedView(study: study)
@@ -138,9 +51,29 @@ struct StudiesHomeView: View {
                     }
                 )
             }
-        }
-        .onAppear {
-            studiesVM.loadStudies()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Edit") {
+                        // Edit action
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        showSheet = true
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color(.secondarySystemFill))
+                                .frame(width: 30, height: 30)
+                            Image(systemName: "plus")
+                                .resizable()
+                                .frame(width: 14, height: 14)
+                                .foregroundColor(Color(.systemGroupedBackground))
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Studies")
         }
     }
 }
