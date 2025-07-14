@@ -13,17 +13,51 @@ struct SettingsView: View {
     @Environment(Clerk.self) private var clerk
 
     var body: some View {
-        VStack {
-            if clerk.user != nil {
-                Text("Settings")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+        NavigationStack {
+            Form {
+                Section(header: Text("Profile")) {
+                    if let user = clerk.user {
+                        HStack {
+                            Image(systemName: "person.crop.circle")
+                                .font(.largeTitle)
+                                .foregroundColor(.accentColor)
+                            VStack(alignment: .leading) {
+                                Text(user.id)
+                                    .font(.headline)
+                                if let email = user.emailAddresses.first?.emailAddress {
+                                    Text(email)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    } else {
+                        Text("Not signed in")
+                            .foregroundColor(.secondary)
+                    }
+                }
 
-                Button("Sign Out") {
-                    Task { try? await clerk.signOut() }
+                Section(header: Text("App Info")) {
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        Task { try? await clerk.signOut() }
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.backward.circle")
+                            Text("Sign Out")
+                        }
+                    }
                 }
             }
+            .navigationTitle("Settings")
         }
     }
 }
