@@ -60,8 +60,34 @@
                 <key>NSExceptionMinimumTLSVersion</key>
                 <string>TLSv1.2</string>
             </dict>
+            <key>localhost</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+                <key>NSExceptionMinimumTLSVersion</key>
+                <string>TLSv1.2</string>
+            </dict>
+            <key>127.0.0.1</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+                <key>NSExceptionMinimumTLSVersion</key>
+                <string>TLSv1.2</string>
+            </dict>
         </dict>
     </dict>
+
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.healthpredictor.app</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>healthpredictor</string>
+            </array>
+        </dict>
+    </array>
 </dict>
 </plist>
 
