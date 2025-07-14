@@ -8,13 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0407E3E12DE78251006A1EB7 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 0407E3E02DE78251006A1EB7 /* SwiftSoup */; };
-		044F680A2DFA0B2900200A3F /* Tiktoken in Frameworks */ = {isa = PBXBuildFile; productRef = 044F68092DFA0B2900200A3F /* Tiktoken */; };
-		046F70F22D9121F000D6B0E2 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 046F70F12D9121F000D6B0E2 /* FirebaseAuth */; };
-		046F70F42D9121F000D6B0E2 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 046F70F32D9121F000D6B0E2 /* FirebaseCore */; };
-		046F70F62D9121F000D6B0E2 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 046F70F52D9121F000D6B0E2 /* FirebaseFirestore */; };
-		046F70F82D9121F000D6B0E2 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 046F70F72D9121F000D6B0E2 /* FirebaseMessaging */; };
-		046F70FA2D9121F100D6B0E2 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 046F70F92D9121F000D6B0E2 /* FirebaseStorage */; };
-		046F70FD2D91227700D6B0E2 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 046F70FC2D91227700D6B0E2 /* FirebaseAnalytics */; };
+		04203C8D2E22607900B9C575 /* Clerk in Frameworks */ = {isa = PBXBuildFile; productRef = 04203C8C2E22607900B9C575 /* Clerk */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,13 +41,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				046F70F82D9121F000D6B0E2 /* FirebaseMessaging in Frameworks */,
-				044F680A2DFA0B2900200A3F /* Tiktoken in Frameworks */,
-				046F70F42D9121F000D6B0E2 /* FirebaseCore in Frameworks */,
-				046F70FD2D91227700D6B0E2 /* FirebaseAnalytics in Frameworks */,
-				046F70F22D9121F000D6B0E2 /* FirebaseAuth in Frameworks */,
-				046F70FA2D9121F100D6B0E2 /* FirebaseStorage in Frameworks */,
-				046F70F62D9121F000D6B0E2 /* FirebaseFirestore in Frameworks */,
+				04203C8D2E22607900B9C575 /* Clerk in Frameworks */,
 				0407E3E12DE78251006A1EB7 /* SwiftSoup in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -97,14 +85,8 @@
 			);
 			name = HealthPredictor;
 			packageProductDependencies = (
-				046F70F12D9121F000D6B0E2 /* FirebaseAuth */,
-				046F70F32D9121F000D6B0E2 /* FirebaseCore */,
-				046F70F52D9121F000D6B0E2 /* FirebaseFirestore */,
-				046F70F72D9121F000D6B0E2 /* FirebaseMessaging */,
-				046F70F92D9121F000D6B0E2 /* FirebaseStorage */,
-				046F70FC2D91227700D6B0E2 /* FirebaseAnalytics */,
 				0407E3E02DE78251006A1EB7 /* SwiftSoup */,
-				044F68092DFA0B2900200A3F /* Tiktoken */,
+				04203C8C2E22607900B9C575 /* Clerk */,
 			);
 			productName = HealthPredictor;
 			productReference = 046F70DF2D91216400D6B0E2 /* HealthPredictor.app */;
@@ -136,9 +118,8 @@
 			mainGroup = 046F70D62D91216400D6B0E2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				046F70F02D9121F000D6B0E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				0407E3DF2DE78251006A1EB7 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
-				044F68082DFA0B2900200A3F /* XCRemoteSwiftPackageReference "Tiktoken" */,
+				04203C8B2E22607900B9C575 /* XCRemoteSwiftPackageReference "clerk-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 046F70E02D91216400D6B0E2 /* Products */;
@@ -302,6 +283,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HealthPredictor/Preview Content\"";
+				DEVELOPMENT_TEAM = 7VS44S3CU5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HealthPredictor/Info.plist;
@@ -337,6 +319,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"HealthPredictor/Preview Content\"";
+				DEVELOPMENT_TEAM = 7VS44S3CU5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = HealthPredictor/Info.plist;
@@ -393,20 +376,12 @@
 				minimumVersion = 2.8.7;
 			};
 		};
-		044F68082DFA0B2900200A3F /* XCRemoteSwiftPackageReference "Tiktoken" */ = {
+		04203C8B2E22607900B9C575 /* XCRemoteSwiftPackageReference "clerk-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/aespinilla/Tiktoken";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-		046F70F02D9121F000D6B0E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			repositoryURL = "https://github.com/clerk/clerk-ios";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 11.10.0;
+				minimumVersion = 0.59.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -417,40 +392,10 @@
 			package = 0407E3DF2DE78251006A1EB7 /* XCRemoteSwiftPackageReference "SwiftSoup" */;
 			productName = SwiftSoup;
 		};
-		044F68092DFA0B2900200A3F /* Tiktoken */ = {
+		04203C8C2E22607900B9C575 /* Clerk */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 044F68082DFA0B2900200A3F /* XCRemoteSwiftPackageReference "Tiktoken" */;
-			productName = Tiktoken;
-		};
-		046F70F12D9121F000D6B0E2 /* FirebaseAuth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 046F70F02D9121F000D6B0E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAuth;
-		};
-		046F70F32D9121F000D6B0E2 /* FirebaseCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 046F70F02D9121F000D6B0E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCore;
-		};
-		046F70F52D9121F000D6B0E2 /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 046F70F02D9121F000D6B0E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestore;
-		};
-		046F70F72D9121F000D6B0E2 /* FirebaseMessaging */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 046F70F02D9121F000D6B0E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseMessaging;
-		};
-		046F70F92D9121F000D6B0E2 /* FirebaseStorage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 046F70F02D9121F000D6B0E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseStorage;
-		};
-		046F70FC2D91227700D6B0E2 /* FirebaseAnalytics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 046F70F02D9121F000D6B0E2 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalytics;
+			package = 04203C8B2E22607900B9C575 /* XCRemoteSwiftPackageReference "clerk-ios" */;
+			productName = Clerk;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
