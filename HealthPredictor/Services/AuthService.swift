@@ -1,0 +1,87 @@
+//
+//  AuthService.swift
+//  HealthPredictor
+//
+//  Created by Stephan  on 13.07.2025.
+//
+
+import Foundation
+import Clerk
+
+class AuthService {
+
+    static let shared = AuthService()
+
+    private init() {}
+
+    private let baseURL = "http://192.168.68.60:8000"  // Use computer's IP address for real device testing
+
+    // Get the current user's JWT token from Clerk
+    private func getAuthToken() throws -> String {
+        var token: String?
+        var authError: Error?
+        let semaphore = DispatchSemaphore(value: 0)
+
+        Task { @MainActor in
+            if let user = Clerk.shared.user {
+                token = user.id
+                print("Got user ID: \(user.id)")
+            } else {
+                print("No user found in Clerk.shared.user")
+                authError = AuthError.notAuthenticated
+            }
+            semaphore.signal()
+        }
+        semaphore.wait()
+
+        if let error = authError {
+            throw error
+        }
+
+        guard let jwtToken = token else {
+            print("No token available")
+            throw AuthError.notAuthenticated
+        }
+
+        return jwtToken
+    }
+
+    // Create an authenticated URLRequest with the Clerk JWT token
+    func authenticatedRequest(for endpoint: String, method: String = "GET", body: Data? = nil) async throws -> URLRequest {
+        guard let url = URL(string: "\(baseURL)\(endpoint)") else {
+            throw AuthError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+
+        let token = try getAuthToken()
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        if let body = body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = body
+        }
+
+        return request
+    }
+}
+
+enum AuthError: Error, LocalizedError {
+    case notAuthenticated
+    case invalidURL
+    case invalidResponse
+    case serverError(code: Int, message: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notAuthenticated:
+            return "User is not authenticated"
+        case .invalidURL:
+            return "Invalid URL"
+        case .invalidResponse:
+            return "Invalid response from server"
+        case .serverError(_, let message):
+            return message
+        }
+    }
+}
