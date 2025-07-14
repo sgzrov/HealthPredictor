@@ -46,7 +46,7 @@ class OutcomeViewModel: ObservableObject {
                 fullOutcome += chunk
                 self.outcomeText = fullOutcome
 
-                try await Task.sleep(nanoseconds: 10_000_000)
+                try await Task.sleep(nanoseconds: 4_000_000)
             }
             isGenerating = false
             return fullOutcome

@@ -44,7 +44,7 @@ class SummaryViewModel: ObservableObject {
                 fullSummary += chunk
                 self.summarizedText = fullSummary
 
-                try await Task.sleep(nanoseconds: 10_000_000)  // Add a small delay to make streaming visible
+                try await Task.sleep(nanoseconds: 4_000_000)  // Add a small delay to make streaming visible
             }
             isSummarizing = false
             return fullSummary
