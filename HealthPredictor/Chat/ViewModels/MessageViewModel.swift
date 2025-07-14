@@ -25,7 +25,7 @@ class MessageViewModel: ObservableObject {
         self.messages = session.messages
     }
 
-    private static let streamingDelay: UInt64 = 10_000_000 // For slowed streaming (better UI)
+    private static let streamingDelay: UInt64 = 30_000_000 // For slowed streaming (better UI)
 
     func sendMessage() {
         guard !inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
@@ -40,7 +40,7 @@ class MessageViewModel: ObservableObject {
         isLoading = true
 
         Task {
-            try? await Task.sleep(nanoseconds: 550_000_000)
+            try? await Task.sleep(nanoseconds: 500_000_000)
             let thinkingMessage = ChatMessage(content: "", sender: .assistant, state: .streaming)
             messages.append(thinkingMessage)
             session.messages = messages
