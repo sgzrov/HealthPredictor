@@ -9,29 +9,64 @@ import SwiftUI
 
 struct StudyCardView: View {
 
-    @ObservedObject var study: Study
+    @Environment(\.colorScheme) private var colorScheme
 
-    let onRefreshSummary: () -> Void
-    let onRefreshOutcome: () -> Void
+    @ObservedObject var viewModel: StudyCardViewModel
+
+    var borderColor: Color? {
+        colorScheme == .dark ? Color.gray.opacity(0.5) : nil
+    }
 
     var body: some View {
-        VStack(alignment: .leading) {
-            Text(study.title)
-                .font(.headline)
+        ZStack(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemBackground))
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top) {
+                    Text(viewModel.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text(viewModel.formattedDate)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Text(viewModel.summaryText)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .italic(viewModel.isSummaryEmpty)
+                    .lineLimit(1)
+
+                HStack(alignment: .center, spacing: 8) {
+                    Text("Source:")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(16)
         }
-        .padding()
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.systemBackground)))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.gray, lineWidth: 1))
+        .overlay(
+            Group {
+                if let borderColor = borderColor {
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(borderColor, lineWidth: 1)
+                }
+            }
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
     }
 }
 
 #Preview {
-    StudyCardView(study: Study(
+    let study = Study(
         title: "Sample Study Title",
         summary: "This is a sample study summary.",
         personalizedInsight: "This is a sample personalized insight.",
         sourceURL: URL(string: "https://example.com")!
-    )) {
-    } onRefreshOutcome: {
-    }
+    )
+
+    let viewModel = StudyCardViewModel(study: study)
+    return StudyCardView(viewModel: viewModel)
 }
