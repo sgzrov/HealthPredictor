@@ -20,20 +20,6 @@ class StudyViewModel: ObservableObject {
     @Published var recommendedStudies: [Study] = []
     @Published var allStudies: [Study] = []
 
-    func loadStudies() {
-        let sampleStudies = [
-            Study(
-                title: "Heart Health Study",
-                summary: "A comprehensive study about heart health.",
-                personalizedInsight: "Your heart health metrics show positive trends.",
-                sourceURL: URL(string: "https://example.com/heart")!
-            )
-        ]
-
-        recommendedStudies = []
-        allStudies = sampleStudies
-    }
-
     func updateOutcome(for id: UUID, outcome: String) {
         if let index = allStudies.firstIndex(where: { $0.id == id }) {
             allStudies[index].personalizedInsight = outcome
