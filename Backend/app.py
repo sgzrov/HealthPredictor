@@ -2,16 +2,17 @@ import os
 import logging
 import json
 import io
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from typing import Optional, Callable, Any
 
-from chat_agent import ChatAgent
-from study_outcome_agent import StudyOutcomeAgent
-from study_summary_agent import StudySummaryAgent
-from code_interpreter_selector import CodeInterpreterSelector
+from Agents.chat_agent import ChatAgent
+from Agents.study_outcome_agent import StudyOutcomeAgent
+from Agents.study_summary_agent import StudySummaryAgent
+from Agents.Helpers.code_interpreter_selector import CodeInterpreterSelector
+from auth import verify_clerk_jwt
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -100,8 +101,13 @@ def create_streaming_response(generator_func: Callable, **kwargs) -> StreamingRe
     )
 
 @app.post("/analyze-health-data/")
-async def analyze_health_data(file: UploadFile = File(...), user_input: str = Form(...), conversation_id: str = Form(None)):
-    logger.debug(f"/analyze-health-data/ called with user_input: {user_input}")
+async def analyze_health_data(
+    file: UploadFile = File(...),
+    user_input: str = Form(...),
+    conversation_id: str = Form(None),
+    user = Depends(verify_clerk_jwt)
+):
+    logger.debug(f"/analyze-health-data/ called with user_input: {user_input} by user: {user.get('sub', 'unknown')}")
 
     try:
         file_bytes = await file.read()
@@ -124,8 +130,11 @@ async def analyze_health_data(file: UploadFile = File(...), user_input: str = Fo
         raise HTTPException(status_code = 500, detail = str(e))
 
 @app.post("/simple-chat/")
-async def simple_chat(request: SimpleChatRequest):
-    logger.debug(f"/simple-chat/ called with user_input: {request.user_input}")
+async def simple_chat(
+    request: SimpleChatRequest,
+    user = Depends(verify_clerk_jwt)
+):
+    logger.debug(f"/simple-chat/ called with user_input: {request.user_input} by user: {user.get('sub', 'unknown')}")
 
     try:
         save_conversation, _ = setup_conversation_history(request.conversation_id, request.user_input)
@@ -148,7 +157,12 @@ async def simple_chat(request: SimpleChatRequest):
         raise HTTPException(status_code = 500, detail = str(e))
 
 @app.post("/should-use-code-interpreter/")
-async def should_use_code_interpreter(request: SelectorRequest):
+async def should_use_code_interpreter(
+    request: SelectorRequest,
+    user = Depends(verify_clerk_jwt)
+):
+    logger.debug(f"/should-use-code-interpreter/ called by user: {user.get('sub', 'unknown')}")
+
     try:
         result = selector_agent.should_use_code_interpreter(request.user_input)
         use_code_interpreter = result == "yes"
@@ -158,8 +172,12 @@ async def should_use_code_interpreter(request: SelectorRequest):
         raise HTTPException(status_code = 500, detail = str(e))
 
 @app.post("/generate-outcome/")
-async def generate_outcome(file: UploadFile = File(...), user_input: str = Form(...)):
-    logger.debug(f"/generate-outcome/ called with user_input: {user_input}")
+async def generate_outcome(
+    file: UploadFile = File(...),
+    user_input: str = Form(...),
+    user = Depends(verify_clerk_jwt)
+):
+    logger.debug(f"/generate-outcome/ called with user_input: {user_input} by user: {user.get('sub', 'unknown')}")
 
     try:
         file_bytes = await file.read()
@@ -181,8 +199,11 @@ async def generate_outcome(file: UploadFile = File(...), user_input: str = Form(
         raise HTTPException(status_code = 500, detail = str(e))
 
 @app.post("/summarize-study/")
-async def summarize_study(request: SummarizeRequest):
-    logger.debug(f"/summarize-study/ called with text length: {len(request.text)}")
+async def summarize_study(
+    request: SummarizeRequest,
+    user = Depends(verify_clerk_jwt)
+):
+    logger.debug(f"/summarize-study/ called with text length: {len(request.text)} by user: {user.get('sub', 'unknown')}")
 
     try:
         async def generate_stream():
