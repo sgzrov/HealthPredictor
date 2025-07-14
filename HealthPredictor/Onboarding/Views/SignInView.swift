@@ -61,9 +61,6 @@ struct SignInView: View {
             Spacer()
         }
         .background(Color.primary.opacity(0.05))
-        .onAppear {
-            print("🔐 SignInView: appeared")
-        }
     }
 }
 
