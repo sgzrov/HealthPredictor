@@ -55,10 +55,5 @@ struct ChatInputView: View {
             isLoading: false,
             onSend: {}
         )
-        ChatInputView(
-            inputMessage: .constant(""),
-            isLoading: true,
-            onSend: {}
-        )
     }
 }
