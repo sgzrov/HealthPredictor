@@ -22,23 +22,16 @@ struct MessageBubbleView: View {
                     Text(message.content.isEmpty && message.state == .streaming ? "Thinking..." : message.content)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(backgroundColor)
-                        .foregroundColor(foregroundColor)
+                        .background(message.sender == .user ? Color.accentColor : .secondary.opacity(0.3))
+                        .foregroundColor(message.sender == .user ? .white : .primary)
                         .cornerRadius(20)
 
                 }
 
-                HStack(spacing: 4) {
+                HStack(spacing: 10) {
                     Text(message.timestamp, style: .time)
                         .font(.caption2)
                         .foregroundColor(.secondary)
-
-                    if message.state == .streaming {
-                        Text("•")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .opacity(0.7)
-                    }
                 }
             }
 
@@ -50,28 +43,6 @@ struct MessageBubbleView: View {
             insertion: .scale(scale: 0.8).combined(with: .opacity),
             removal: .scale(scale: 0.8).combined(with: .opacity)
         ))
-    }
-
-    private var backgroundColor: Color {
-        switch message.state {
-        case .complete:
-            return message.sender == .user ? Color.accentColor : .gray.opacity(0.3)
-        case .streaming:
-            return message.sender == .user ? Color.accentColor : .gray.opacity(0.2)
-        case .error:
-            return message.sender == .user ? Color.accentColor : .red.opacity(0.1)
-        }
-    }
-
-        private var foregroundColor: Color {
-        switch message.state {
-        case .complete:
-            return message.sender == .user ? .white : .primary
-        case .streaming:
-            return message.sender == .user ? .white : .secondary
-        case .error:
-            return message.sender == .user ? .white : .red
-        }
     }
 }
 
