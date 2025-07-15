@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import PDFKit
 
 @MainActor
 class ImportURLViewModel: ObservableObject {
@@ -16,6 +17,8 @@ class ImportURLViewModel: ObservableObject {
     @Published var isHTML: Bool = false
     @Published var isLoading: Bool = false
 
+    var currentSecurityScopedURL: URL?
+
     func validateURL() {
         let result = URLStringCheck.validatePartialURL(importInput)
         errorMessage = result.errorMessage ?? ""
@@ -23,24 +26,14 @@ class ImportURLViewModel: ObservableObject {
 
     func validateFileType(url: URL) async {
         isLoading = true
-        errorMessage = ""
-        isPDF = false
-        isHTML = false
+        resetValidationState()
 
-        let result = await URLExtensionCheck.checkContentType(url: url)
-        print("Content check result: \(result.type), error: \(result.error ?? "none")") // Debug print
-        switch result.type {
-        case .pdf:
-            isPDF = true
-        case .html:
-            isHTML = true
-            if url.pathExtension.lowercased() == "pdf" {
-                errorMessage = result.error ?? "Could not access PDF. Try uploading file from Files."
-            }
-        case .unknown:
-            errorMessage = result.error ?? "Invalid URL. Content could not be inferred."
+        if url.isFileURL {
+            await validateLocalFile(url: url)
+        } else {
+            await validateRemoteFile(url: url)
         }
-        print("Set errorMessage to: \(errorMessage)") // Debug print
+
         isLoading = false
     }
 
@@ -53,5 +46,74 @@ class ImportURLViewModel: ObservableObject {
         errorMessage = ""
         isPDF = false
         isHTML = false
+    }
+
+    func stopAccessingCurrentFile() {
+        if let url = currentSecurityScopedURL {
+            url.stopAccessingSecurityScopedResource()
+            currentSecurityScopedURL = nil
+        }
+    }
+
+    private func resetValidationState() {
+        errorMessage = ""
+        isPDF = false
+        isHTML = false
+    }
+
+    private func validateLocalFile(url: URL) async {
+        stopAccessingCurrentFile()
+
+        let isSecurityScoped = url.startAccessingSecurityScopedResource()  // Handle security-scoped local file URLs
+        if isSecurityScoped {
+            currentSecurityScopedURL = url
+        }
+
+        let fileManager = FileManager.default
+        let filePath = url.path
+        do {
+            _ = try fileManager.attributesOfItem(atPath: filePath)
+        } catch {
+            errorMessage = "Cannot access the selected file: \(error.localizedDescription)"
+            isLoading = false
+            return
+        }
+
+        let fileExtension = url.pathExtension.lowercased()
+        switch fileExtension {
+        case "pdf":
+            do {
+                let data = try Data(contentsOf: url)
+                if PDFDocument(data: data) != nil {
+                    isPDF = true
+                } else {
+                    errorMessage = "The file appears to be corrupted or not a valid PDF."
+                }
+            } catch {
+                errorMessage = "Could not read the PDF file: \(error.localizedDescription)"
+            }
+        case "rtf":
+            isHTML = false
+        case "txt", "":
+            isHTML = false
+        default:
+            errorMessage = "Unsupported file type. Please select a PDF, RTF, or text file."
+        }
+    }
+
+    private func validateRemoteFile(url: URL) async {
+        let result = await URLExtensionCheck.checkContentType(url: url)
+
+        switch result.type {
+        case .pdf:
+            isPDF = true
+        case .html:
+            isHTML = true
+            if url.pathExtension.lowercased() == "pdf" {
+                errorMessage = result.error ?? "Could not access PDF. Try uploading file from Files."
+            }
+        case .unknown:
+            errorMessage = result.error ?? "Invalid URL. Content could not be inferred."
+        }
     }
 }
