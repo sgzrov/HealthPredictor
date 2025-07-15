@@ -9,13 +9,24 @@ import SwiftUI
 
 struct ChatView: View {
 
+    @ObservedObject var session: ChatSession
+
     @StateObject private var messageVM: MessageViewModel
 
-    @ObservedObject var session: ChatSession
+    @State private var hasSentFirstMessage = false
+
+    var newSessionHandler: ((ChatSession) -> Void)?
 
     init(session: ChatSession) {
         self.session = session
         self._messageVM = StateObject(wrappedValue: MessageViewModel(session: session))
+    }
+
+    init(newSessionHandler: @escaping (ChatSession) -> Void) {
+        let newSession = ChatSession()
+        self.session = newSession
+        self._messageVM = StateObject(wrappedValue: MessageViewModel(session: newSession))
+        self.newSessionHandler = newSessionHandler
     }
 
     var body: some View {
@@ -33,6 +44,11 @@ struct ChatView: View {
                 .onChange(of: messageVM.messages) { oldValue, newValue in
                     withAnimation {
                         proxy.scrollTo(newValue.last?.id, anchor: .bottom)
+                    }
+
+                    if !hasSentFirstMessage && oldValue.isEmpty && !newValue.isEmpty {
+                        hasSentFirstMessage = true
+                        newSessionHandler?(session)
                     }
                 }
             }
