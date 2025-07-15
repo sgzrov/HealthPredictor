@@ -44,9 +44,11 @@ struct StudiesHomeView: View {
                     },
                     onImport: { study in
                         currentStudy = study
-                        studiesVM.allStudies.insert(study, at: 0)
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             navigateToStudy = study
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                studiesVM.allStudies.insert(study, at: 0)
+                            }
                         }
                     }
                 )
