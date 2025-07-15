@@ -35,6 +35,11 @@ class TagExtractionViewModel: ImportURLViewModel {
         topTags = []
         visibleTags = []
 
+        if url.isFileURL {
+            try? await Task.sleep(nanoseconds: UInt64(75_000_000))
+            if Task.isCancelled { return }
+        }
+
         do {
             let text = try await textExtractionService.extractText(from: url)
             let tags = extractHealthTags(from: text)
@@ -94,6 +99,7 @@ class TagExtractionViewModel: ImportURLViewModel {
     override func clearInput() {
         super.clearInput()
         clearTags()
+        stopAccessingCurrentFile()
     }
 }
 
