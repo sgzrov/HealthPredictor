@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct StudyDetailedView: View {
+
     @ObservedObject var study: Study
 
     var body: some View {
