@@ -25,10 +25,10 @@ class TextExtractionService {
 
     private func fetchData(for url: URL) async throws -> Data {
         if url.isFileURL {
-            return try Data(contentsOf: url)
+            let data = try Data(contentsOf: url)
+            return data
         } else {
             let (fetchedData, _) = try await CloudflareCheck.shared.makeRequest(to: url)
-
             return fetchedData
         }
     }
@@ -41,7 +41,6 @@ class TextExtractionService {
             return (isPDF: isPDF, isHTML: false)
         } else {
             let result = await URLExtensionCheck.checkContentType(url: url)
-
             return (isPDF: result.type == .pdf, isHTML: result.type == .html)
         }
     }
