@@ -25,7 +25,7 @@ class MessageViewModel: ObservableObject {
         self.messages = session.messages
     }
 
-    private static let streamingDelay: UInt64 = 30_000_000 // For slowed streaming (better UI)
+    private static let streamingDelay: UInt64 = 4_000_000 // For slowed streaming (better UI)
 
     func sendMessage() {
         guard !inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
@@ -99,6 +99,7 @@ class MessageViewModel: ObservableObject {
             fullContent += chunk
             messages[messageIndex].content = fullContent
             session.messages = messages
+            
             try? await Task.sleep(nanoseconds: Self.streamingDelay)
         }
         messages[messageIndex].state = .complete
