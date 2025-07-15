@@ -56,7 +56,7 @@ struct ImportSheetView: View {
                 }
                 .padding(.top, 6)
 
-                VStack(spacing: 24){
+                VStack(spacing: 24) {
                     VStack {
                         Text("Import")
                             .font(.title)
@@ -170,7 +170,7 @@ struct ImportSheetView: View {
                     .padding()
                     .background(Color(.secondarySystemFill))
                     .cornerRadius(12)
-                    .padding(.horizontal, 8)
+                    .padding(.top, 40)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
@@ -180,7 +180,7 @@ struct ImportSheetView: View {
                             TagView(tag: importVM.visibleTags[idx])
                                 .transition(.scale.combined(with: .opacity))
                                 .onAppear {
-                                    if idx == 3 && importVM.visibleTags.count == 4 {
+                                    if idx == importVM.visibleTags.count - 1 {
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                                             isTextFieldFocused = false
                                         }
@@ -284,7 +284,7 @@ struct ImportSheetView: View {
             isTextFieldFocused = false
         }
         .presentationDetents([.large])
-        .animation(.easeInOut(duration: 0.3), value: selectedFileURL)
+        .animation(.easeInOut(duration: 0.2), value: selectedFileURL)
         .fileImporter(isPresented: $showFileImporter, allowedContentTypes: [.pdf, .plainText, .rtf, .text, .data], allowsMultipleSelection: false) { result in
             importVM.clearTags()
 
