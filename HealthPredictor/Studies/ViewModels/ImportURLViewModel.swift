@@ -30,8 +30,6 @@ class ImportURLViewModel: ObservableObject {
 
         if url.isFileURL {
             await validateLocalFile(url: url)
-        } else {
-            await validateRemoteFile(url: url)
         }
 
         isLoading = false
@@ -98,22 +96,6 @@ class ImportURLViewModel: ObservableObject {
             isHTML = false
         default:
             errorMessage = "Unsupported file type. Please select a PDF, RTF, or text file."
-        }
-    }
-
-    private func validateRemoteFile(url: URL) async {
-        let result = await URLExtensionCheck.checkContentType(url: url)
-
-        switch result.type {
-        case .pdf:
-            isPDF = true
-        case .html:
-            isHTML = true
-            if url.pathExtension.lowercased() == "pdf" {
-                errorMessage = result.error ?? "Could not access PDF. Try uploading file from Files."
-            }
-        case .unknown:
-            errorMessage = result.error ?? "Invalid URL. Content could not be inferred."
         }
     }
 }
