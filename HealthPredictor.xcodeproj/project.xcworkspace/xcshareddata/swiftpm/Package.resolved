@@ -1,5 +1,5 @@
 {
-  "originHash" : "20a6ac2b896f6526ded5ddc024e38b244c824f8c695174dfe49fdb890a1fcf32",
+  "originHash" : "e6155bcb55384e0fcde0a157fe2ab6f9ec771195d96ecdac0026f000177a4685",
   "pins" : [
     {
       "identity" : "clerk-ios",
@@ -35,15 +35,6 @@
       "state" : {
         "revision" : "776c4a6db74d5c6c143974be91c383680d468630",
         "version" : "1.3.0"
-      }
-    },
-    {
-      "identity" : "swiftsoup",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/scinfu/SwiftSoup",
-      "state" : {
-        "revision" : "bba848db50462894e7fc0891d018dfecad4ef11e",
-        "version" : "2.8.7"
       }
     }
   ],
