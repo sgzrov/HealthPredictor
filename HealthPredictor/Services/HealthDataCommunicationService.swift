@@ -129,6 +129,7 @@ class HealthDataCommunicationService {
             body: body
         )
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 120
 
         return try await streamSSE(request: request)
     }
@@ -137,11 +138,12 @@ class HealthDataCommunicationService {
         let body: [String: Any] = ["text": userInput]
         let jsonData = try JSONSerialization.data(withJSONObject: body)
 
-        let request = try await authService.authenticatedRequest(
+        var request = try await authService.authenticatedRequest(
             for: "/summarize-study/",
             method: "POST",
             body: jsonData
         )
+        request.timeoutInterval = 120
 
         return try await streamSSE(request: request)
     }
@@ -190,6 +192,7 @@ class HealthDataCommunicationService {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 120
         let boundary = UUID().uuidString
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
