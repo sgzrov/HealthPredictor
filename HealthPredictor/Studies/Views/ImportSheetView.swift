@@ -45,6 +45,11 @@ struct ImportSheetView: View {
                 }
                 ImportSheetInputSection(importVM: importVM, selectedFileURL: $selectedFileURL, isTextFieldFocused: $isTextFieldFocused)
                 ImportSheetTagsAndImportButton(importVM: importVM, summaryVM: summaryVM, outcomeVM: outcomeVM, selectedFileURL: $selectedFileURL, isTextFieldFocused: $isTextFieldFocused, onImport: {
+
+                    // Capture the URL and input before dismissing the view
+                    let capturedURL = selectedFileURL
+                    let capturedInput = importVM.importInput
+
                     let url = selectedFileURL ?? URL(string: importVM.importInput)!
                     let study = Study(
                         title: url.lastPathComponent,
@@ -55,29 +60,45 @@ struct ImportSheetView: View {
                     onImport(study)
                     onDismiss()
                     Task {
-                        let extractedText = try? await TextExtractionService.shared.extractText(from: url)
+                        let extractedText: String?
+
+                        if let url = capturedURL, url.isFileURL {
+                            extractedText = try? await HealthDataCommunicationService.shared.extractTextFromBackend(fileURL: url)
+                        } else if let url = capturedURL, let scheme = url.scheme, scheme.hasPrefix("http") {
+                            extractedText = try? await HealthDataCommunicationService.shared.extractTextFromBackend(urlString: url.absoluteString)
+                        } else if !capturedInput.isEmpty, let url = URL(string: capturedInput), let scheme = url.scheme, scheme.hasPrefix("http") {
+                            extractedText = try? await HealthDataCommunicationService.shared.extractTextFromBackend(urlString: url.absoluteString)
+                        } else {
+                            extractedText = nil
+                        }
+
                         guard let extractedText, !extractedText.isEmpty else {
-                            print("Text extraction failed for URL: \(url)")
+                            summaryVM.errorMessage = "Text extraction failed. Please check the file or URL."
+                            outcomeVM.errorMessage = "Text extraction failed. Please check the file or URL."
                             return
                         }
+
                         Task {
                             _ = await summaryVM.summarizeStudy(text: extractedText)
                         }
+
                         Task {
                             _ = await outcomeVM.generateOutcome(from: extractedText)
                         }
+
                         Task {
-                            for await _ in summaryVM.$summarizedText.values {
-                                if let summary = summaryVM.summarizedText, !summary.isEmpty {
+                            for await summary in summaryVM.$summarizedText.values {
+                                if let summary, !summary.isEmpty {
                                     await MainActor.run {
                                         study.summary = summary
                                     }
                                 }
                             }
                         }
+
                         Task {
-                            for await _ in outcomeVM.$outcomeText.values {
-                                if let outcome = outcomeVM.outcomeText, !outcome.isEmpty {
+                            for await outcome in outcomeVM.$outcomeText.values {
+                                if let outcome, !outcome.isEmpty {
                                     await MainActor.run {
                                         study.personalizedInsight = outcome
                                     }
