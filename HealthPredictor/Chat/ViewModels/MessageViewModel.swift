@@ -99,7 +99,7 @@ class MessageViewModel: ObservableObject {
             fullContent += chunk
             messages[messageIndex].content = fullContent
             session.messages = messages
-            
+
             try? await Task.sleep(nanoseconds: Self.streamingDelay)
         }
         messages[messageIndex].state = .complete
