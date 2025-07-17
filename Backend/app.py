@@ -8,11 +8,13 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from typing import Optional, Callable, Any
 
-from Agents.chat_agent import ChatAgent
-from Agents.study_outcome_agent import StudyOutcomeAgent
-from Agents.study_summary_agent import StudySummaryAgent
-from Agents.Helpers.code_interpreter_selector import CodeInterpreterSelector
-from auth import verify_clerk_jwt
+from Backend.Agents.chat_agent import ChatAgent
+from Backend.Agents.study_outcome_agent import StudyOutcomeAgent
+from Backend.Agents.study_summary_agent import StudySummaryAgent
+from Backend.Agents.Helpers.code_interpreter_selector import CodeInterpreterSelector
+from Backend.auth import verify_clerk_jwt
+
+from Backend.text_extraction_router import router as text_extraction_router
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -21,6 +23,7 @@ logging.getLogger('chat_agent').setLevel(logging.DEBUG)
 load_dotenv()
 
 app = FastAPI()
+app.include_router(text_extraction_router)
 
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
