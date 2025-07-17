@@ -49,5 +49,5 @@ class StudyOutcomeAgent:
             logger.error(f"OpenAI API error: {e}")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error in generate_outcome_stream: {e}")
-            raise
+            logger.error(f"Exception in generate_outcome_stream: {e}")
+            yield f"data: {{'error': '{str(e)}', 'done': True}}\n\n"
