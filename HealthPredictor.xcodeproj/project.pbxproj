@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0407E3E12DE78251006A1EB7 /* SwiftSoup in Frameworks */ = {isa = PBXBuildFile; productRef = 0407E3E02DE78251006A1EB7 /* SwiftSoup */; };
 		04203C8D2E22607900B9C575 /* Clerk in Frameworks */ = {isa = PBXBuildFile; productRef = 04203C8C2E22607900B9C575 /* Clerk */; };
 /* End PBXBuildFile section */
 
@@ -42,7 +41,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				04203C8D2E22607900B9C575 /* Clerk in Frameworks */,
-				0407E3E12DE78251006A1EB7 /* SwiftSoup in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,7 +83,6 @@
 			);
 			name = HealthPredictor;
 			packageProductDependencies = (
-				0407E3E02DE78251006A1EB7 /* SwiftSoup */,
 				04203C8C2E22607900B9C575 /* Clerk */,
 			);
 			productName = HealthPredictor;
@@ -118,7 +115,6 @@
 			mainGroup = 046F70D62D91216400D6B0E2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				0407E3DF2DE78251006A1EB7 /* XCRemoteSwiftPackageReference "SwiftSoup" */,
 				04203C8B2E22607900B9C575 /* XCRemoteSwiftPackageReference "clerk-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -368,14 +364,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		0407E3DF2DE78251006A1EB7 /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/scinfu/SwiftSoup";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.8.7;
-			};
-		};
 		04203C8B2E22607900B9C575 /* XCRemoteSwiftPackageReference "clerk-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/clerk/clerk-ios";
@@ -387,11 +375,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		0407E3E02DE78251006A1EB7 /* SwiftSoup */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 0407E3DF2DE78251006A1EB7 /* XCRemoteSwiftPackageReference "SwiftSoup" */;
-			productName = SwiftSoup;
-		};
 		04203C8C2E22607900B9C575 /* Clerk */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 04203C8B2E22607900B9C575 /* XCRemoteSwiftPackageReference "clerk-ios" */;
