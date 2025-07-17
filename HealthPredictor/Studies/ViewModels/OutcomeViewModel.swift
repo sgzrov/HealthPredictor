@@ -17,7 +17,6 @@ class OutcomeViewModel: ObservableObject {
 
     private let healthDataCommunicationService = HealthDataCommunicationService.shared
     private let healthFileCreationService = HealthFileCreationService.shared
-    private let textExtractionService = TextExtractionService.shared
 
     func generateOutcome(from studyText: String) async -> String? {
         isGenerating = true
@@ -26,19 +25,17 @@ class OutcomeViewModel: ObservableObject {
 
         do {
             guard !studyText.isEmpty else {
-                print("No text to generate outcome from.")
                 isGenerating = false
                 return nil
             }
 
             let csvPath = try await generateCSVAsync()
             var fullOutcome = ""
-            let stream = try await healthDataCommunicationService.generateOutcomeStream(
-                csvFilePath: csvPath,
-                userInput: studyText
-            )
+            let stream = try await healthDataCommunicationService.generateOutcomeStream(csvFilePath: csvPath, userInput: studyText)
+
             for await chunk in stream {
                 if chunk.hasPrefix("Error: ") {
+                    print("Outcome error chunk: \(chunk)")
                     self.errorMessage = chunk
                     isGenerating = false
                     return nil
@@ -48,10 +45,12 @@ class OutcomeViewModel: ObservableObject {
 
                 try await Task.sleep(nanoseconds: 4_000_000)
             }
+
             isGenerating = false
             return fullOutcome
         } catch {
-            self.errorMessage = "Failed to generate insight: \(error.localizedDescription)"
+            self.errorMessage = "Failed to generate outcome: \(error.localizedDescription)"
+            print("Exception in generateOutcome: \(error)")
             isGenerating = false
             return nil
         }

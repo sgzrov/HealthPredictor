@@ -7,7 +7,6 @@
 
 import Foundation
 import SwiftUI
-import PDFKit
 
 @MainActor
 class SummaryViewModel: ObservableObject {
@@ -18,7 +17,6 @@ class SummaryViewModel: ObservableObject {
     @Published var errorMessage: String = ""
 
     private let healthDataCommunicationService = HealthDataCommunicationService.shared
-    private let textExtractionService = TextExtractionService.shared
 
     func summarizeStudy(text: String) async -> String? {
         isSummarizing = true
@@ -35,6 +33,7 @@ class SummaryViewModel: ObservableObject {
             self.extractedText = text
             var fullSummary = ""
             let stream = try await healthDataCommunicationService.summarizeStudyStream(userInput: text)
+
             for await chunk in stream {
                 if chunk.hasPrefix("Error: ") {
                     self.errorMessage = chunk
@@ -46,6 +45,7 @@ class SummaryViewModel: ObservableObject {
 
                 try await Task.sleep(nanoseconds: 4_000_000)  // Add a small delay to make streaming visible
             }
+
             isSummarizing = false
             return fullSummary
         } catch {
@@ -53,17 +53,6 @@ class SummaryViewModel: ObservableObject {
             print("Failed to summarize: \(error).")
             isSummarizing = false
             return nil
-        }
-    }
-
-    func determineContentType(url: URL) async -> (isPDF: Bool, isHTML: Bool) {
-        if url.isFileURL {
-            let data = try? Data(contentsOf: url)
-            let isPDF = data != nil && PDFDocument(data: data!) != nil
-            return (isPDF: isPDF, isHTML: false)
-        } else {
-            let result = await URLExtensionCheck.checkContentType(url: url)
-            return (isPDF: result.type == .pdf, isHTML: result.type == .html)
         }
     }
 }
