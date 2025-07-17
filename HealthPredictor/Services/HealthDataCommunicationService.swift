@@ -165,6 +165,83 @@ class HealthDataCommunicationService {
         }
     }
 
+    func extractTextFromBackend(fileURL: URL) async throws -> String {
+        var fileData: Data
+        var didStartAccessing = false
+
+        if fileURL.startAccessingSecurityScopedResource() {
+            didStartAccessing = true
+            print("Started accessing security-scoped file")
+        } else {
+            print("Could not start accessing security-scoped file")
+        }
+        defer {
+            if didStartAccessing {
+                fileURL.stopAccessingSecurityScopedResource()
+                print("Stopped accessing security-scoped file")
+            }
+        }
+
+        fileData = try Data(contentsOf: fileURL)
+        let endpoint = "/extract-text/"
+        guard let url = URL(string: Self.baseURL + endpoint) else {
+            throw HealthCommunicationError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+        let filename = fileURL.lastPathComponent
+        let mimeType = "application/pdf"
+        body.append("--\(boundary)\r\n")
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n")
+        body.append("Content-Type: \(mimeType)\r\n\r\n")
+        body.append(fileData)
+        body.append("\r\n")
+        body.append("--\(boundary)--\r\n")
+        request.httpBody = body
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw HealthCommunicationError.invalidResponse
+        }
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw HealthCommunicationError.decodingError
+        }
+        return text
+    }
+
+    func extractTextFromBackend(urlString: String) async throws -> String {
+        let endpoint = "/extract-text/"
+        guard let url = URL(string: Self.baseURL + endpoint) else {
+            throw HealthCommunicationError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let boundary = UUID().uuidString
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+        body.append("--\(boundary)\r\n")
+        body.append("Content-Disposition: form-data; name=\"url\"\r\n\r\n")
+        body.append("\(urlString)\r\n")
+        body.append("--\(boundary)--\r\n")
+        request.httpBody = body
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw HealthCommunicationError.invalidResponse
+        }
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw HealthCommunicationError.decodingError
+        }
+        return text
+    }
+
     private func streamSSE(request: URLRequest) async throws -> AsyncStream<String> {
         return AsyncStream<String> { continuation in
             let sseClient = SSEClientService()
