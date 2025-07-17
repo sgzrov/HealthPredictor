@@ -17,7 +17,6 @@ class TagExtractionViewModel: ImportURLViewModel {
     @Published var isExtractingTags: Bool = false
 
     private var tagExtractionTask: Task<Void, Never>?
-    private let textExtractionService = TextExtractionService.shared
 
     override func validateFileType(url: URL) async {
         await super.validateFileType(url: url)
@@ -34,18 +33,24 @@ class TagExtractionViewModel: ImportURLViewModel {
         isExtractingTags = true
         topTags = []
         visibleTags = []
-
-        if url.isFileURL {
-            try? await Task.sleep(nanoseconds: UInt64(75_000_000))
-            if Task.isCancelled { return }
-        }
+        print("[extractTags called with url: \(url)")
 
         do {
-            let text = try await textExtractionService.extractText(from: url)
+            let text: String
+
+            if url.isFileURL {
+                try? await Task.sleep(nanoseconds: UInt64(75_000_000))
+                if Task.isCancelled { return }
+
+                text = try await HealthDataCommunicationService.shared.extractTextFromBackend(fileURL: url)
+            } else {
+                text = try await HealthDataCommunicationService.shared.extractTextFromBackend(urlString: url.absoluteString)
+            }
+
             let tags = extractHealthTags(from: text)
             await updateVisibleTags(with: tags)
         } catch {
-            print("Error extracting tags: \(error)") // Debug print
+            print("[DEBUG] Error extracting tags: \(error)")
         }
 
         isExtractingTags = false
