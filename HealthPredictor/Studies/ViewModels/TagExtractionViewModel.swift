@@ -21,11 +21,9 @@ class TagExtractionViewModel: ImportURLViewModel {
     override func validateFileType(url: URL) async {
         await super.validateFileType(url: url)
 
-        if isPDF || isHTML {
-            tagExtractionTask?.cancel()
-            tagExtractionTask = Task { [weak self] in
-                await self?.extractTags(from: url)
-            }
+        tagExtractionTask?.cancel()
+        tagExtractionTask = Task { [weak self] in
+            await self?.extractTags(from: url)
         }
     }
 
