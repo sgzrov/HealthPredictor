@@ -29,6 +29,7 @@ struct StudiesListView: View {
                 }
             }
         }
+        .padding(.top, 12)
         .padding(.horizontal, 16)
     }
 }
