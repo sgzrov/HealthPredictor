@@ -14,7 +14,7 @@ class AuthService {
 
     private init() {}
 
-    private let baseURL = "http://192.168.68.60:8000"  // Use computer's IP address for real device testing
+    private let baseURL = "https://healthpredictor-production.up.railway.app"
 
     // Get the current user's JWT token from Clerk
     private func getAuthToken() throws -> String {
