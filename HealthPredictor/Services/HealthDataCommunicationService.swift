@@ -43,7 +43,7 @@ class HealthDataCommunicationService {
 
     private init() {}
 
-    private static let baseURL = "http://192.168.68.60:8000"
+    private static let baseURL = "https://healthpredictor-production.up.railway.app"
 
     private func appendMultipartField(
         to body: inout Data,
