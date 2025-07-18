@@ -10,3 +10,4 @@ PyMuPDF==1.26.3
 beautifulsoup4==4.13.4
 lxml==6.0.0
 striprtf==0.0.26
+gunicorn==21.2.0
