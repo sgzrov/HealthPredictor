@@ -2,19 +2,19 @@
 //  AuthService.swift
 //  HealthPredictor
 //
-//  Created by Stephan  on 13.07.2025.
+//  Created by Stephan on 13.07.2025.
 //
 
 import Foundation
 import Clerk
 
-class AuthService {
+class AuthService: AuthServiceProtocol {
 
     static let shared = AuthService()
 
     private init() {}
 
-    private let baseURL = "https://healthpredictor-production.up.railway.app"
+    private let baseURL = APIConstants.baseURL
 
     // Get the current user's JWT token from Clerk
     private func getAuthToken() throws -> String {
@@ -42,7 +42,6 @@ class AuthService {
             print("No token available")
             throw AuthError.notAuthenticated
         }
-
         return jwtToken
     }
 
@@ -58,7 +57,10 @@ class AuthService {
         let token = try getAuthToken()
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         if let body = body {
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            // Only set Content-Type if not already set (for multipart requests)
+            if request.value(forHTTPHeaderField: "Content-Type") == nil {
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            }
             request.httpBody = body
         }
 
@@ -66,22 +68,9 @@ class AuthService {
     }
 }
 
-enum AuthError: Error, LocalizedError {
+enum AuthError: Error {
     case notAuthenticated
     case invalidURL
     case invalidResponse
     case serverError(code: Int, message: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .notAuthenticated:
-            return "User is not authenticated"
-        case .invalidURL:
-            return "Invalid URL"
-        case .invalidResponse:
-            return "Invalid response from server"
-        case .serverError(_, let message):
-            return message
-        }
-    }
 }
