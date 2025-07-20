@@ -26,7 +26,11 @@ load_dotenv()
 app = FastAPI()
 app.include_router(text_extraction_router)
 
-s3_storage_service = S3StorageService()
+try:
+    s3_storage_service = S3StorageService()
+except ValueError as e:
+    logger.warning(f"S3StorageService initialization failed: {e}")
+    s3_storage_service = None
 
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
@@ -55,6 +59,15 @@ class SelectorRequest(BaseModel):
 class SimpleChatRequest(BaseModel):
     user_input: str
     conversation_id: Optional[str] = None
+
+class AnalyzeHealthDataRequest(BaseModel):
+    s3_url: str
+    user_input: Optional[str] = None
+    conversation_id: Optional[str] = None
+
+class GenerateOutcomeRequest(BaseModel):
+    s3_url: str
+    user_input: str
 
 def extract_text_from_chunk(chunk: Any, full_response: str = "") -> str:
     if hasattr(chunk, 'type'):
@@ -108,21 +121,25 @@ def create_streaming_response(generator_func: Callable, **kwargs) -> StreamingRe
 
 @app.post("/analyze-health-data/")
 async def analyze_health_data(
-    file: UploadFile = File(...),
-    user_input: str = Form(...),
-    conversation_id: str = Form(None),
+    request: AnalyzeHealthDataRequest,
     user = Depends(verify_clerk_jwt)
 ):
-    logger.debug(f"/analyze-health-data/ called with user_input: {user_input} by user: {user.get('sub', 'unknown')}")
+    logger.debug(f"/analyze-health-data/ called with s3_url: {request.s3_url}, user_input: {request.user_input} by user: {user.get('sub', 'unknown')}")
+
+    if s3_storage_service is None:
+        raise HTTPException(status_code = 503, detail = "Tigris storage not configured")
 
     try:
-        file_bytes = await file.read()
-        save_conversation, _ = setup_conversation_history(conversation_id, user_input)
+        # Download file from S3
+        file_obj = s3_storage_service.download_file_from_url(request.s3_url)
+
+        # Handle optional user_input
+        user_input_str = request.user_input or ""
+        save_conversation, _ = setup_conversation_history(request.conversation_id, user_input_str)
 
         async def generate_stream():
             try:
-                file_obj = io.BytesIO(file_bytes)
-                response = chat_agent.analyze_health_data(file_obj, user_input, conversation_id=conversation_id)
+                response = chat_agent.analyze_health_data(file_obj, user_input_str, conversation_id=request.conversation_id)
                 for event in process_streaming_response(response, save_conversation):
                     yield event
             except Exception as e:
@@ -179,19 +196,21 @@ async def should_use_code_interpreter(
 
 @app.post("/generate-outcome/")
 async def generate_outcome(
-    file: UploadFile = File(...),
-    user_input: str = Form(...),
+    request: GenerateOutcomeRequest,
     user = Depends(verify_clerk_jwt)
 ):
-    logger.debug(f"/generate-outcome/ called with user_input: {user_input} by user: {user.get('sub', 'unknown')}")
+    logger.debug(f"/generate-outcome/ called with s3_url: {request.s3_url}, user_input: {request.user_input} by user: {user.get('sub', 'unknown')}")
+
+    if s3_storage_service is None:
+        raise HTTPException(status_code = 503, detail = "Tigris storage not configured")
 
     try:
-        file_bytes = await file.read()
+        # Download file from S3
+        file_obj = s3_storage_service.download_file_from_url(request.s3_url)
 
         async def generate_stream():
             try:
-                file_obj = io.BytesIO(file_bytes)
-                response = outcome_agent.generate_outcome_stream(file_obj, user_input)
+                response = outcome_agent.generate_outcome_stream(file_obj, request.user_input)
                 for event in process_streaming_response(response):
                     yield event
             except Exception as e:
@@ -232,6 +251,9 @@ async def upload_health_data(
     user = Depends(verify_clerk_jwt)
 ):
     logger.debug(f"/upload-health-data/ called by user: {user.get('sub', 'unknown')}")
+
+    if s3_storage_service is None:
+        raise HTTPException(status_code = 503, detail = "Tigris storage not configured")
 
     try:
         user_id = user.get('sub', 'unknown')

@@ -1,6 +1,7 @@
 import os
 import logging
 import boto3
+import io
 
 from typing import BinaryIO
 from datetime import datetime
@@ -62,6 +63,29 @@ class S3StorageService:
 
             logger.info(f"Successfully downloaded file from Tigris: {s3_url}")
             return file_content
+
+        except ClientError as e:
+            logger.error(f"Error downloading file from Tigris: {e}")
+            raise Exception(f"Failed to download file from Tigris: {str(e)}")
+
+    def download_file_from_url(self, s3_url: str) -> BinaryIO:
+        """
+        Download a file from Tigris and return as file object
+        """
+        try:
+            # Extract key from S3 URL
+            key = s3_url.replace(f"{self.endpoint_url}/{self.bucket_name}/", "")
+
+            # Download the file
+            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
+            file_content = response['Body'].read()
+
+            # Return as file object
+            file_obj = io.BytesIO(file_content)
+            file_obj.seek(0)
+
+            logger.info(f"Successfully downloaded file from Tigris: {s3_url}")
+            return file_obj
 
         except ClientError as e:
             logger.error(f"Error downloading file from Tigris: {e}")
