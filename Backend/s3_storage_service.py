@@ -78,7 +78,16 @@ class S3StorageService:
             logger.debug(f"Bucket name: {self.bucket_name}")
 
             # Extract key from S3 URL
-            key = s3_url.replace(f"{self.endpoint_url}/{self.bucket_name}/", "")
+            # URL format: https://t3.storage.dev/healthpredictor-data/users/...
+            # We need to remove the endpoint and bucket from the URL
+            expected_prefix = f"{self.endpoint_url}/{self.bucket_name}/"
+            logger.debug(f"Expected prefix: {expected_prefix}")
+
+            if not s3_url.startswith(expected_prefix):
+                logger.error(f"S3 URL {s3_url} doesn't start with expected prefix {expected_prefix}")
+                raise Exception(f"Invalid S3 URL format: {s3_url}")
+
+            key = s3_url[len(expected_prefix):]
             logger.debug(f"Extracted key: {key}")
 
             # Download the file
