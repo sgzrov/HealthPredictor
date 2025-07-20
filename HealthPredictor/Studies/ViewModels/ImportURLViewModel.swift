@@ -81,7 +81,7 @@ class ImportURLViewModel: ObservableObject {
         switch fileExtension {
         case "pdf":
             do {
-                let data = try Data(contentsOf: url)
+                let data = try await FileUtilities.readFileData(from: url)
                 if PDFDocument(data: data) != nil {
                     isPDF = true
                 } else {

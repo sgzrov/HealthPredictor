@@ -40,9 +40,9 @@ class TagExtractionViewModel: ImportURLViewModel {
                 try? await Task.sleep(nanoseconds: UInt64(75_000_000))
                 if Task.isCancelled { return }
 
-                text = try await HealthDataCommunicationService.shared.extractTextFromBackend(fileURL: url)
+                text = try await BackendService.shared.extractTextFromFile(fileURL: url)
             } else {
-                text = try await HealthDataCommunicationService.shared.extractTextFromBackend(urlString: url.absoluteString)
+                text = try await BackendService.shared.extractTextFromURL(urlString: url.absoluteString)
             }
 
             let tags = extractHealthTags(from: text)
