@@ -12,6 +12,7 @@ struct HealthMetricMapper {
 
     static let quantitySubtagToType: [String: HKQuantityTypeIdentifier] = [
         "HRV": .heartRateVariabilitySDNN,
+        "Heart Rate": .heartRate,
         "Resting HR": .restingHeartRate,
         "Walking HR": .walkingHeartRateAverage,
         "Blood Pressure": .bloodPressureSystolic,
@@ -32,6 +33,7 @@ struct HealthMetricMapper {
     ]
 
     static let subtagToUnit: [String: String] = [
+        "Heart Rate": "count/min",
         "Resting HR": "count/min",
         "Walking HR": "count/min",
         "HRV": "ms",
