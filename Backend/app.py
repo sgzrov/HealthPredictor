@@ -13,6 +13,7 @@ from Backend.Agents.study_outcome_agent import StudyOutcomeAgent
 from Backend.Agents.study_summary_agent import StudySummaryAgent
 from Backend.Agents.Helpers.code_interpreter_selector import CodeInterpreterSelector
 from Backend.auth import verify_clerk_jwt
+from Backend.s3_storage_service import S3StorageService
 
 from Backend.text_extraction_router import router as text_extraction_router
 
@@ -24,6 +25,8 @@ load_dotenv()
 
 app = FastAPI()
 app.include_router(text_extraction_router)
+
+s3_storage_service = S3StorageService()
 
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
@@ -221,6 +224,28 @@ async def summarize_study(
 
     except Exception as e:
         logger.error(f"Error in summarize_study: {e}")
+        raise HTTPException(status_code = 500, detail = str(e))
+
+@app.post("/upload-health-data/")
+async def upload_health_data(
+    file: UploadFile = File(...),
+    user = Depends(verify_clerk_jwt)
+):
+    logger.debug(f"/upload-health-data/ called by user: {user.get('sub', 'unknown')}")
+
+    try:
+        user_id = user.get('sub', 'unknown')
+        file_bytes = await file.read()
+        file_obj = io.BytesIO(file_bytes)
+
+        filename = file.filename or "user_health_data.csv"
+        s3_url = s3_storage_service.upload_health_data_file(file_obj, user_id, filename)
+
+        logger.info(f"Successfully uploaded health data for user {user_id}: {s3_url}")
+        return {"s3_url": s3_url, "message": "Health data uploaded successfully"}
+
+    except Exception as e:
+        logger.error(f"Error uploading health data: {e}")
         raise HTTPException(status_code = 500, detail = str(e))
 
 if __name__ == "__main__":
