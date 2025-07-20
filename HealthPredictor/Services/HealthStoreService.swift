@@ -8,13 +8,14 @@
 import Foundation
 import HealthKit
 
-class HealthStoreService {
+class HealthStoreService: HealthStoreServiceProtocol {
 
     static let shared = HealthStoreService()
 
     private init() {}
 
-    let healthStore = HKHealthStore()
+    var healthStore: HKHealthStore { return _healthStore }
+    private let _healthStore = HKHealthStore()
 
     func requestAuthorization(completion: @escaping (Bool, Error?) -> Void) {
         guard HKHealthStore.isHealthDataAvailable() else {
