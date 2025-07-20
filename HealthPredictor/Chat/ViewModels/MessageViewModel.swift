@@ -16,8 +16,8 @@ class MessageViewModel: ObservableObject {
     @Published var isLoading: Bool = false
 
     private let session: ChatSession
-    private let healthDataCommunicationService = HealthDataCommunicationService.shared
-    private let healthFileCreationService = HealthFileCreationService.shared
+    private let backendService = BackendService.shared
+    private let healthFileCacheService = UserFileCacheService.shared
     private let conversationId = UUID().uuidString
 
     init(session: ChatSession) {
@@ -49,7 +49,7 @@ class MessageViewModel: ObservableObject {
         }
     }
 
-    private func processMessage(userInput: String) async {
+        private func processMessage(userInput: String) async {
         do {
             let needsCodeInterpreter = try await checkIfCodeInterpreterNeeded(message: userInput)
             await sendStreamingMessage(userInput: userInput, needsCodeInterpreter: needsCodeInterpreter)
@@ -65,13 +65,13 @@ class MessageViewModel: ObservableObject {
 
             if needsCodeInterpreter {
                 let csvPath = try await generateCSVAsync()
-                stream = try await healthDataCommunicationService.analyzeHealthDataStream(
+                stream = try await backendService.analyzeHealthData(
                     csvFilePath: csvPath,
                     userInput: userInput,
                     conversationId: conversationId
                 )
             } else {
-                stream = try await healthDataCommunicationService.simpleChatStream(
+                stream = try await backendService.simpleChat(
                     userInput: userInput,
                     conversationId: conversationId
                 )
@@ -118,20 +118,12 @@ class MessageViewModel: ObservableObject {
     }
 
     private func checkIfCodeInterpreterNeeded(message: String) async throws -> Bool {
-        let result = try await healthDataCommunicationService.shouldUseCodeInterpreter(userInput: message)
+        let result = try await backendService.shouldUseCodeInterpreter(userInput: message)
         return result == "yes"
     }
 
     private func generateCSVAsync() async throws -> String {
-        return try await withCheckedThrowingContinuation { continuation in
-            healthFileCreationService.generateCSV { url in
-                if let url = url {
-                    continuation.resume(returning: url.path)
-                } else {
-                    continuation.resume(throwing: HealthCommunicationError.fileNotFound)
-                }
-            }
-        }
+        return try await healthFileCacheService.getCachedHealthFile()
     }
 
     func clearMessages() {
