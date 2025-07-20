@@ -16,7 +16,7 @@ class SummaryViewModel: ObservableObject {
     @Published var isSummarizing = false
     @Published var errorMessage: String = ""
 
-    private let healthDataCommunicationService = HealthDataCommunicationService.shared
+    private let backendService = BackendService.shared
 
     func summarizeStudy(text: String) async -> String? {
         isSummarizing = true
@@ -32,7 +32,7 @@ class SummaryViewModel: ObservableObject {
 
             self.extractedText = text
             var fullSummary = ""
-            let stream = try await healthDataCommunicationService.summarizeStudyStream(userInput: text)
+            let stream = try await backendService.summarizeStudy(userInput: text)
 
             for await chunk in stream {
                 if chunk.hasPrefix("Error: ") {

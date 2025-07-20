@@ -15,8 +15,8 @@ class OutcomeViewModel: ObservableObject {
     @Published var outcomeText: String?
     @Published var errorMessage: String?
 
-    private let healthDataCommunicationService = HealthDataCommunicationService.shared
-    private let healthFileCreationService = HealthFileCreationService.shared
+    private let backendService = BackendService.shared
+    private let healthFileCacheService = UserFileCacheService.shared
 
     func generateOutcome(from studyText: String) async -> String? {
         isGenerating = true
@@ -31,7 +31,7 @@ class OutcomeViewModel: ObservableObject {
 
             let csvPath = try await generateCSVAsync()
             var fullOutcome = ""
-            let stream = try await healthDataCommunicationService.generateOutcomeStream(csvFilePath: csvPath, userInput: studyText)
+            let stream = try await backendService.generateOutcome(csvFilePath: csvPath, userInput: studyText)
 
             for await chunk in stream {
                 if chunk.hasPrefix("Error: ") {
@@ -57,14 +57,6 @@ class OutcomeViewModel: ObservableObject {
     }
 
     private func generateCSVAsync() async throws -> String {
-        return try await withCheckedThrowingContinuation { continuation in
-            healthFileCreationService.generateCSV { url in
-                if let url = url {
-                    continuation.resume(returning: url.path)
-                } else {
-                    continuation.resume(throwing: HealthCommunicationError.fileNotFound)
-                }
-            }
-        }
+        return try await healthFileCacheService.getCachedHealthFile()
     }
 }
