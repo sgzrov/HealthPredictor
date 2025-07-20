@@ -39,6 +39,7 @@ struct HealthPredictorApp: App {
                     if let key = getClerkPublishableKey() {
                         clerk.configure(publishableKey: key)
                         try? await clerk.load()
+
                     } else {
                         print("Missing Clerk publishable key")
                     }
