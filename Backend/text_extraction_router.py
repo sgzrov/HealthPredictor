@@ -17,11 +17,11 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 def extract_text_from_rtf(file_path):
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+    with open(file_path, "r", encoding = "utf-8", errors = "ignore") as f:
         return rtf_to_text(f.read())
 
 def extract_text_from_plaintext(file_path):
-    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+    with open(file_path, "r", encoding = "utf-8", errors = "ignore") as f:
         return f.read()
 
 def extract_text_from_html(html):
