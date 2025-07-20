@@ -70,29 +70,75 @@ class GenerateOutcomeRequest(BaseModel):
     user_input: str
 
 def extract_text_from_chunk(chunk: Any, full_response: str = "") -> str:
+    logger.debug(f"🔍 BACKEND: extract_text_from_chunk called with chunk type: {getattr(chunk, 'type', 'unknown')}")
+
     if hasattr(chunk, 'type'):
         if chunk.type == 'text_delta':
             if hasattr(chunk, 'delta') and chunk.delta and hasattr(chunk.delta, 'text'):
-                return chunk.delta.text or ""
+                text = chunk.delta.text or ""
+                logger.debug(f"🔍 BACKEND: text_delta chunk, extracted: '{text}'")
+                return text
 
         elif chunk.type == 'response.output_text.delta':
             if hasattr(chunk, 'delta') and chunk.delta:
-                return chunk.delta or ""
+                text = chunk.delta or ""
+                logger.debug(f"🔍 BACKEND: response.output_text.delta chunk, extracted: '{text}'")
+                return text
 
         elif chunk.type == 'response.output_text.done':
             if hasattr(chunk, 'text') and chunk.text:
                 remaining_text = chunk.text[len(full_response):]
-                return remaining_text or ""
+                text = remaining_text or ""
+                logger.debug(f"🔍 BACKEND: response.output_text.done chunk, extracted: '{text}'")
+                return text
+
+        # Handle code interpreter specific chunk types
+        elif chunk.type == 'response.output_text':
+            if hasattr(chunk, 'text') and chunk.text:
+                text = chunk.text or ""
+                logger.debug(f"🔍 BACKEND: response.output_text chunk, extracted: '{text}'")
+                return text
+
+        # Handle tool calls and other code interpreter events
+        elif chunk.type in ['tool_call', 'tool_result', 'response.output_tool_calls']:
+            # Skip tool-related chunks as they don't contain user-facing text
+            logger.debug(f"🔍 BACKEND: Skipping tool-related chunk: {chunk.type}")
+            return ""
+
+        # Handle any other chunk types that might contain text
+        elif hasattr(chunk, 'text') and chunk.text:
+            text = chunk.text or ""
+            logger.debug(f"🔍 BACKEND: Generic text chunk, extracted: '{text}'")
+            return text
+
+    # Fallback: try to extract text from any attribute that might contain it
+    for attr in ['text', 'content', 'delta']:
+        if hasattr(chunk, attr):
+            value = getattr(chunk, attr)
+            if value and isinstance(value, str):
+                logger.debug(f"🔍 BACKEND: Fallback extraction from {attr}: '{value}'")
+                return value
+
+    logger.debug(f"🔍 BACKEND: No text extracted from chunk")
     return ""
 
 def process_streaming_response(response: Any, conversation_callback: Optional[Callable[[str], None]] = None) -> Any:
     full_response = ""
+    chunk_count = 0
 
     for chunk in response:
+        chunk_count += 1
+        logger.debug(f"🔍 BACKEND: Processing chunk {chunk_count}: type={getattr(chunk, 'type', 'unknown')}")
+
         text = extract_text_from_chunk(chunk, full_response)
         if text:
             full_response += text
+            logger.debug(f"🔍 BACKEND: Extracted text: '{text}'")
             yield f"data: {json.dumps({'content': text, 'done': False})}\n\n"
+        else:
+            logger.debug(f"🔍 BACKEND: No text extracted from chunk {chunk_count}")
+
+    logger.debug(f"🔍 BACKEND: Stream complete, total chunks: {chunk_count}, full response length: {len(full_response)}")
 
     if conversation_callback and full_response.strip():
         conversation_callback(full_response.strip())
@@ -124,37 +170,53 @@ async def analyze_health_data(
     request: AnalyzeHealthDataRequest,
     user = Depends(verify_clerk_jwt)
 ):
-    logger.debug(f"/analyze-health-data/ called with s3_url: {request.s3_url}, user_input: {request.user_input} by user: {user.get('sub', 'unknown')}")
+    logger.debug(f"🔍 BACKEND: /analyze-health-data/ called")
+    logger.debug(f"🔍 BACKEND: s3_url: {request.s3_url}")
+    logger.debug(f"🔍 BACKEND: user_input: {request.user_input}")
+    logger.debug(f"🔍 BACKEND: conversation_id: {request.conversation_id}")
+    logger.debug(f"🔍 BACKEND: user: {user.get('sub', 'unknown')}")
 
     if s3_storage_service is None:
-        logger.error("S3 storage service is None")
+        logger.error("🔍 BACKEND: S3 storage service is None")
         raise HTTPException(status_code = 503, detail = "Tigris storage not configured")
 
     try:
         # Download file from S3
-        logger.debug(f"Attempting to download file from S3 URL: {request.s3_url}")
+        logger.debug(f"🔍 BACKEND: Attempting to download file from S3 URL: {request.s3_url}")
         file_obj = s3_storage_service.download_file_from_url(request.s3_url)
-        logger.debug(f"Successfully downloaded file from S3")
+        logger.debug(f"🔍 BACKEND: Successfully downloaded file from S3")
 
         # Handle optional user_input
         user_input_str = request.user_input or ""
+        logger.debug(f"🔍 BACKEND: User input string: '{user_input_str}'")
         save_conversation, _ = setup_conversation_history(request.conversation_id, user_input_str)
+        logger.debug(f"🔍 BACKEND: Conversation history setup complete")
 
         async def generate_stream():
             try:
-                logger.debug("Starting health data analysis stream")
+                logger.debug("🔍 BACKEND: Starting health data analysis stream")
+                logger.debug(f"🔍 BACKEND: Calling chat_agent.analyze_health_data")
                 response = chat_agent.analyze_health_data(file_obj, user_input_str, conversation_id=request.conversation_id)
+                logger.debug(f"🔍 BACKEND: Got response from chat_agent, processing stream")
                 for event in process_streaming_response(response, save_conversation):
+                    logger.debug(f"🔍 BACKEND: Yielding event: {event}")
                     yield event
+                logger.debug("🔍 BACKEND: Stream processing complete")
             except Exception as e:
-                logger.error(f"Health analysis error: {e}")
+                logger.error(f"🔍 BACKEND: Health analysis error: {e}")
+                logger.error(f"🔍 BACKEND: Error type: {type(e)}")
+                import traceback
+                logger.error(f"🔍 BACKEND: Traceback: {traceback.format_exc()}")
                 yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
 
-        logger.debug("Creating streaming response")
+        logger.debug("🔍 BACKEND: Creating streaming response")
         return create_streaming_response(generate_stream)
 
     except Exception as e:
-        logger.error(f"Error in analyze_health_data: {e}")
+        logger.error(f"🔍 BACKEND: Error in analyze_health_data: {e}")
+        logger.error(f"🔍 BACKEND: Error type: {type(e)}")
+        import traceback
+        logger.error(f"🔍 BACKEND: Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code = 500, detail = str(e))
 
 @app.post("/simple-chat/")
