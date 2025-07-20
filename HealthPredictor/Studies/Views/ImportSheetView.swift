@@ -63,11 +63,11 @@ struct ImportSheetView: View {
                         let extractedText: String?
 
                         if let url = capturedURL, url.isFileURL {
-                            extractedText = try? await HealthDataCommunicationService.shared.extractTextFromBackend(fileURL: url)
+                            extractedText = try? await BackendService.shared.extractTextFromFile(fileURL: url)
                         } else if let url = capturedURL, let scheme = url.scheme, scheme.hasPrefix("http") {
-                            extractedText = try? await HealthDataCommunicationService.shared.extractTextFromBackend(urlString: url.absoluteString)
+                            extractedText = try? await BackendService.shared.extractTextFromURL(urlString: url.absoluteString)
                         } else if !capturedInput.isEmpty, let url = URL(string: capturedInput), let scheme = url.scheme, scheme.hasPrefix("http") {
-                            extractedText = try? await HealthDataCommunicationService.shared.extractTextFromBackend(urlString: url.absoluteString)
+                            extractedText = try? await BackendService.shared.extractTextFromURL(urlString: url.absoluteString)
                         } else {
                             extractedText = nil
                         }
