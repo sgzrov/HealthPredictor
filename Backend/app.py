@@ -127,11 +127,14 @@ async def analyze_health_data(
     logger.debug(f"/analyze-health-data/ called with s3_url: {request.s3_url}, user_input: {request.user_input} by user: {user.get('sub', 'unknown')}")
 
     if s3_storage_service is None:
+        logger.error("S3 storage service is None")
         raise HTTPException(status_code = 503, detail = "Tigris storage not configured")
 
     try:
         # Download file from S3
+        logger.debug(f"Attempting to download file from S3 URL: {request.s3_url}")
         file_obj = s3_storage_service.download_file_from_url(request.s3_url)
+        logger.debug(f"Successfully downloaded file from S3")
 
         # Handle optional user_input
         user_input_str = request.user_input or ""
@@ -139,6 +142,7 @@ async def analyze_health_data(
 
         async def generate_stream():
             try:
+                logger.debug("Starting health data analysis stream")
                 response = chat_agent.analyze_health_data(file_obj, user_input_str, conversation_id=request.conversation_id)
                 for event in process_streaming_response(response, save_conversation):
                     yield event
@@ -146,6 +150,7 @@ async def analyze_health_data(
                 logger.error(f"Health analysis error: {e}")
                 yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
 
+        logger.debug("Creating streaming response")
         return create_streaming_response(generate_stream)
 
     except Exception as e:

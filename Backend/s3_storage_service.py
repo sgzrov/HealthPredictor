@@ -73,12 +73,19 @@ class S3StorageService:
         Download a file from Tigris and return as file object
         """
         try:
+            logger.debug(f"Downloading file from URL: {s3_url}")
+            logger.debug(f"Endpoint URL: {self.endpoint_url}")
+            logger.debug(f"Bucket name: {self.bucket_name}")
+
             # Extract key from S3 URL
             key = s3_url.replace(f"{self.endpoint_url}/{self.bucket_name}/", "")
+            logger.debug(f"Extracted key: {key}")
 
             # Download the file
+            logger.debug(f"Calling S3 get_object with bucket: {self.bucket_name}, key: {key}")
             response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
             file_content = response['Body'].read()
+            logger.debug(f"Downloaded {len(file_content)} bytes")
 
             # Return as file object
             file_obj = io.BytesIO(file_content)
@@ -90,6 +97,9 @@ class S3StorageService:
         except ClientError as e:
             logger.error(f"Error downloading file from Tigris: {e}")
             raise Exception(f"Failed to download file from Tigris: {str(e)}")
+        except Exception as e:
+            logger.error(f"Unexpected error downloading file: {e}")
+            raise Exception(f"Failed to download file: {str(e)}")
 
     def delete_health_data_file(self, s3_url: str) -> bool:
         """
