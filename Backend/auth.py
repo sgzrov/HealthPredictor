@@ -2,7 +2,7 @@ import os
 import requests
 from dotenv import load_dotenv
 from fastapi import Request, HTTPException
-from jose import jwt
+from jose import jwt, JWTError
 from typing import cast
 
 load_dotenv()
@@ -35,21 +35,22 @@ def verify_clerk_jwt(request: Request):
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(status_code = 401, detail = "Missing or invalid token.")
 
-    token = auth_header.split(" ")[1]
+    token = auth_header.split(" ")[1]  # Gets the actual JWT token string
+    if token.count(".") != 2:  # Require a real JWT (must have header, payload, and signature)
+        raise HTTPException(status_code = 401, detail = "Token is not a valid JWT.")
 
-    if "." in token:
-        try:
-            key = get_public_key(token)
-            payload = jwt.decode(
-                token,
-                key,
-                algorithms = ["RS256"],
-                audience = AUDIENCE,
-                issuer = CLERK_ISSUER,
-                options = {"verify_aud": False} if not AUDIENCE else {}
-            )
-            return payload  # Contains user info (sub, email, etc.)
-        except Exception as e:
-            raise HTTPException(status_code = 401, detail = f"Token verification failed: {str(e)}")
-    else:
-        return {"sub": token, "user_id": token}  # Simple user ID authentication (for development)
+    try:
+        key = get_public_key(token)
+        payload = jwt.decode(
+            token,
+            key,
+            algorithms = ["RS256"],
+            audience = AUDIENCE,
+            issuer = CLERK_ISSUER,
+            options = {"verify_aud": False} if not AUDIENCE else {}
+        )
+        return payload  # Contains user info (sub, email, etc.)
+    except JWTError as e:
+        raise HTTPException(status_code = 401, detail = f"Token verification failed: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code = 401, detail = f"Token verification error: {str(e)}")
