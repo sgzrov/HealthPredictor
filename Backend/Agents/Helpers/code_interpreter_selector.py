@@ -11,7 +11,7 @@ class CodeInterpreterSelector:
         self.client = openai.OpenAI(api_key = api_key)
 
         try:
-            with open(prompt_path, "r", encoding="utf-8") as f:
+            with open(prompt_path, "r", encoding = "utf-8") as f:
                 self.prompt = f.read()
         except Exception as e:
             logger.error(f"Error reading prompt file: {e}")
