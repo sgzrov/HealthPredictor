@@ -8,7 +8,7 @@
 import Foundation
 
 struct APIConstants {
-    static let baseURL = "https://your-new-railway-url.up.railway.app"
+    static let baseURL = "https://healthpredictor-production.up.railway.app"
 }
 
 enum NetworkError: Error {
