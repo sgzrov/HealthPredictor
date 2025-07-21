@@ -2,7 +2,6 @@ import os
 import logging
 import boto3
 import io
-
 from typing import BinaryIO
 from datetime import datetime
 from botocore.exceptions import ClientError
@@ -28,102 +27,48 @@ class S3StorageService:
             region_name = self.region
         )
 
-    # Upload user_health_data.csv to Tigris and return the s3 URL
     def upload_health_data_file(self, file_obj: BinaryIO, user_id: str, filename: str) -> str:
         try:
-            # Create a unique key for the file
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            key = f"users/{user_id}/health_data/{timestamp}_{filename}"
+            key = f"users/{user_id}/health_data/{timestamp}_{filename}"  # Generate a unique S3 key for this upload using a timestamp
 
-            # Upload the file
+            # Upload the file to S3
             file_obj.seek(0)
             self.s3_client.upload_fileobj(file_obj, self.bucket_name, key)
-
-            # Return the S3 URL
             s3_url = f"{self.endpoint_url}/{self.bucket_name}/{key}"
             logger.info(f"Successfully uploaded file to Tigris: {s3_url}")
 
-            return s3_url
+            # Keep only the latest file for this user
+            prefix = f"users/{user_id}/health_data/"
+            response = self.s3_client.list_objects_v2(Bucket = self.bucket_name, Prefix = prefix)
+            files = response.get('Contents', [])
+            files_sorted = sorted(files, key = lambda x: x['Key'], reverse = True)  # Sort files by key (the timestamp in key ensures correct order)
+            for file_info in files_sorted[1:]:  # Keep the first (latest), delete the rest
+                old_key = file_info['Key']
+                self.s3_client.delete_object(Bucket = self.bucket_name, Key = old_key)
+                logger.info(f"Deleted old health data file: {old_key}")
 
+            return s3_url
         except ClientError as e:
             logger.error(f"Error uploading file to Tigris: {e}")
             raise Exception(f"Failed to upload file to Tigris: {str(e)}")
 
-    def download_health_data_file(self, s3_url: str) -> bytes:
-        """
-        Download a health data file from Tigris
-        """
-        try:
-            # Extract key from S3 URL
-            key = s3_url.replace(f"{self.endpoint_url}/{self.bucket_name}/", "")
-
-            # Download the file
-            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
-            file_content = response['Body'].read()
-
-            logger.info(f"Successfully downloaded file from Tigris: {s3_url}")
-            return file_content
-
-        except ClientError as e:
-            logger.error(f"Error downloading file from Tigris: {e}")
-            raise Exception(f"Failed to download file from Tigris: {str(e)}")
-
+    # Download a file from Tigris and return as a file object
     def download_file_from_url(self, s3_url: str) -> BinaryIO:
-        """
-        Download a file from Tigris and return as file object
-        """
         try:
-            logger.debug(f"Downloading file from URL: {s3_url}")
-            logger.debug(f"Endpoint URL: {self.endpoint_url}")
-            logger.debug(f"Bucket name: {self.bucket_name}")
-
-            # Extract key from S3 URL
-            # URL format: https://t3.storage.dev/healthpredictor-data/users/...
-            # We need to remove the endpoint and bucket from the URL
+            # Validate and extract the S3 object key from the URL
             expected_prefix = f"{self.endpoint_url}/{self.bucket_name}/"
-            logger.debug(f"Expected prefix: {expected_prefix}")
-
             if not s3_url.startswith(expected_prefix):
-                logger.error(f"S3 URL {s3_url} doesn't start with expected prefix {expected_prefix}")
                 raise Exception(f"Invalid S3 URL format: {s3_url}")
-
             key = s3_url[len(expected_prefix):]
-            logger.debug(f"Extracted key: {key}")
 
-            # Download the file
-            logger.debug(f"Calling S3 get_object with bucket: {self.bucket_name}, key: {key}")
+            # Download the file from S3
             response = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
             file_content = response['Body'].read()
-            logger.debug(f"Downloaded {len(file_content)} bytes")
 
-            # Return as file object
             file_obj = io.BytesIO(file_content)
             file_obj.seek(0)
-
-            logger.info(f"Successfully downloaded file from Tigris: {s3_url}")
             return file_obj
-
         except ClientError as e:
-            logger.error(f"Error downloading file from Tigris: {e}")
+            logger.error(f"Failed to download file from Tigris: {e}")
             raise Exception(f"Failed to download file from Tigris: {str(e)}")
-        except Exception as e:
-            logger.error(f"Unexpected error downloading file: {e}")
-            raise Exception(f"Failed to download file: {str(e)}")
-
-    def delete_health_data_file(self, s3_url: str) -> bool:
-        """
-        Delete a health data file from Tigris
-        """
-        try:
-            # Extract key from S3 URL
-            key = s3_url.replace(f"{self.endpoint_url}/{self.bucket_name}/", "")
-
-            # Delete the file
-            self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
-
-            logger.info(f"Successfully deleted file from Tigris: {s3_url}")
-            return True
-
-        except ClientError as e:
-            logger.error(f"Error deleting file from Tigris: {e}")
-            return False
