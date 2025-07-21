@@ -4,6 +4,8 @@ from typing import BinaryIO, Optional, Dict, List, Any, Generator
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.propagate = True
 
 @dataclass
 class Message:
@@ -14,44 +16,51 @@ class ChatAgent:
     def __init__(self, api_key: str, prompt_path: str, model: str = "gpt-4o-mini") -> None:
         self.api_key = api_key
         self.model = model
-        self.client = openai.OpenAI(api_key=api_key)
+        self.client = openai.OpenAI(api_key = api_key)
         self.conversation_histories: Dict[str, List[Message]] = {}
 
         try:
-            with open(prompt_path, "r", encoding="utf-8") as f:
+            with open(prompt_path, "r", encoding = "utf-8") as f:
                 self.prompt = f.read()
         except Exception as e:
             logger.error(f"Error reading prompt file: {e}")
             raise
 
-    def _get_history_context(self, conversation_id: Optional[str]) -> str:
-        history = self.conversation_histories.get(conversation_id, []) if conversation_id else []
-        logger.debug(f"[DEBUG] Building context from history for {conversation_id}: {history}")
-
-        conversation_context = ""
-        for message in history:
-            role = "User" if message.role == "user" else "Assistant"
-            conversation_context += f"{role}: {message.content}\n"
-
-        logger.debug(f"[DEBUG] Conversation context for LLM (conversation_id = {conversation_id}):\n{conversation_context.strip()}")
-        return conversation_context.strip()
-
     def _append_message(self, conversation_id: str, role: str, content: str) -> None:
+        # Accept any string as conversation_id from frontend
         if not conversation_id or not content.strip():
             return
-
         if conversation_id not in self.conversation_histories:
             self.conversation_histories[conversation_id] = []
-
         message = Message(role=role, content=content.strip())
         self.conversation_histories[conversation_id].append(message)
         logger.debug(f"[DEBUG] After appending {role}: {self.conversation_histories[conversation_id]}")
 
     def _append_user_message(self, conversation_id: str, user_message: str) -> None:
         self._append_message(conversation_id, "user", user_message)
+        log = f"[CONV] After user append ({conversation_id}): {[{'role': m.role, 'content': m.content} for m in self.conversation_histories.get(conversation_id, [])]}"
+        logger.info(log)
+        print(log)
 
     def _append_assistant_response(self, conversation_id: str, full_response: str) -> None:
         self._append_message(conversation_id, "assistant", full_response)
+        log = f"[CONV] After assistant append ({conversation_id}): {[{'role': m.role, 'content': m.content} for m in self.conversation_histories.get(conversation_id, [])]}"
+        logger.info(log)
+        print(log)
+
+    def _get_history_context(self, conversation_id: Optional[str]) -> str:
+        history = self.conversation_histories.get(conversation_id, []) if conversation_id else []
+        log1 = f"[CONV] Building context for {conversation_id}: {[{'role': m.role, 'content': m.content} for m in history]}"
+        logger.info(log1)
+        print(log1)
+        conversation_context = ""
+        for message in history:
+            role = "User" if message.role == "user" else "Assistant"
+            conversation_context += f"{role}: {message.content}\n"
+        log2 = f"[CONV] Final context string for LLM ({conversation_id}):\n{conversation_context.strip()}"
+        logger.info(log2)
+        print(log2)
+        return conversation_context.strip()
 
     def simple_chat(self, user_input: str, prompt: Optional[str] = None,
                    conversation_id: Optional[str] = None) -> Generator[Any, None, None]:
