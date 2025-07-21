@@ -61,36 +61,66 @@ class AgentBackendService: AgentBackendServiceProtocol {
 
     // MARK: - Health Data Analysis
     func analyzeHealthDataStream(csvFilePath: String, userInput: String?, conversationId: String?) async throws -> AsyncStream<String> {
+        print("🔍 AGENT: analyzeHealthDataStream called")
+        print("🔍 AGENT: csvFilePath: \(csvFilePath)")
+        print("🔍 AGENT: userInput: \(userInput ?? "nil")")
+        print("🔍 AGENT: conversationId: \(conversationId ?? "nil")")
+
         let fileManager = FileManager.default
         guard fileManager.fileExists(atPath: csvFilePath) else {
-            print("🔧 analyzeHealthDataStream: CSV file not found at \(csvFilePath)")
+            print("🔍 AGENT: CSV file not found at \(csvFilePath)")
             throw NetworkError.fileNotFound
         }
 
-        print("🔧 analyzeHealthDataStream: Reading CSV from \(csvFilePath)")
+        print("🔍 AGENT: CSV file exists, reading data")
+        print("🔍 AGENT: Reading CSV from \(csvFilePath)")
 
         guard let csvData = fileManager.contents(atPath: csvFilePath) else {
+            print("🔍 AGENT: Failed to read CSV file contents")
             throw NetworkError.fileNotFound
         }
 
-        print("🔧 analyzeHealthDataStream: CSV data size: \(csvData.count) bytes")
+        print("🔍 AGENT: CSV data size: \(csvData.count) bytes")
 
-        var additionalFields: [String: String] = [:]
+        // First upload the file to get S3 URL
+        print("🔍 AGENT: Starting file upload to S3")
+        let s3Url = try await fileUploadService.uploadHealthDataFile(fileData: csvData)
+        print("🔍 AGENT: File uploaded to S3: \(s3Url)")
+
+        // Now send the S3 URL to the analyze endpoint
+        print("🔍 AGENT: Building request body")
+        var body: [String: Any] = ["s3_url": s3Url]
         if let userInput = userInput {
-            additionalFields["user_input"] = userInput
+            body["user_input"] = userInput
+            print("🔍 AGENT: Added userInput to body")
         }
         if let conversationId = conversationId {
-            additionalFields["conversation_id"] = conversationId
+            body["conversation_id"] = conversationId
+            print("🔍 AGENT: Added conversationId to body")
         }
 
-        let request = try await fileUploadService.buildMultipartRequest(
-            endpoint: "/analyze-health-data/",
-            fileData: csvData,
-            additionalFields: additionalFields
-        )
+        print("🔍 AGENT: Final request body: \(body)")
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+        print("🔍 AGENT: JSON data created, size: \(jsonData.count) bytes")
 
-        print("🔧 analyzeHealthDataStream: Request prepared with \(request.httpBody?.count ?? 0) bytes")
-        print("🔧 analyzeHealthDataStream: Request headers: \(request.allHTTPHeaderFields ?? [:])")
+        print("🔍 AGENT: Creating authenticated request")
+        var request = try await authService.authenticatedRequest(
+            for: "/analyze-health-data/",
+            method: "POST",
+            body: jsonData
+        )
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        if let conversationId = conversationId {
+            request.setValue(conversationId, forHTTPHeaderField: "X-Conversation-ID")
+        }
+
+        print("🔍 AGENT: Request prepared with \(jsonData.count) bytes")
+        print("🔍 AGENT: Request headers: \(request.allHTTPHeaderFields ?? [:])")
+        print("🔍 AGENT: Request body: \(String(data: jsonData, encoding: .utf8) ?? "nil")")
+        print("🔍 AGENT: Request URL: \(request.url?.absoluteString ?? "nil")")
+
+        print("🔍 AGENT: Starting SSE stream")
         return try await sseService.streamSSE(request: request)
     }
 
@@ -123,18 +153,31 @@ class AgentBackendService: AgentBackendServiceProtocol {
             throw NetworkError.fileNotFound
         }
 
-        let request = try await fileUploadService.buildMultipartRequest(
-            endpoint: "/generate-outcome/",
-            fileData: csvData,
-            additionalFields: ["user_input": userInput]
+        // First upload the file to get S3 URL
+        let s3Url = try await fileUploadService.uploadHealthDataFile(fileData: csvData)
+        print("🔧 generateOutcomeStream: File uploaded to S3: \(s3Url)")
+
+        // Now send the S3 URL to the generate-outcome endpoint
+        let body: [String: Any] = [
+            "s3_url": s3Url,
+            "user_input": userInput
+        ]
+
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
+
+        var request = try await authService.authenticatedRequest(
+            for: "/generate-outcome/",
+            method: "POST",
+            body: jsonData
         )
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         return try await sseService.streamSSE(request: request)
     }
 
     // MARK: - Study Summarization
     func summarizeStudyStream(userInput: String) async throws -> AsyncStream<String> {
-        let body: [String: Any] = ["user_input": userInput]
+        let body: [String: Any] = ["text": userInput]
         let jsonData = try JSONSerialization.data(withJSONObject: body)
 
         let request = try await authService.authenticatedRequest(
@@ -145,6 +188,5 @@ class AgentBackendService: AgentBackendServiceProtocol {
 
         return try await sseService.streamSSE(request: request)
     }
-
 
 }
