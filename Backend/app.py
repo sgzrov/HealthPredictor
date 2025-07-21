@@ -127,6 +127,7 @@ async def analyze_health_data(request: AnalyzeHealthDataRequest, _ = Depends(ver
 
     try:
         file_obj = s3_storage_service.download_file_from_url(request.s3_url)
+        logger.info(f"[analyze-health-data] File downloaded from S3: {request.s3_url}")
 
         user_input_str = request.user_input
         save_conversation, _ = setup_conversation_history(request.conversation_id, user_input_str)
