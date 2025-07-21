@@ -18,7 +18,6 @@ class MessageViewModel: ObservableObject {
     private let session: ChatSession
     private let backendService = BackendService.shared
     private let healthFileCacheService = UserFileCacheService.shared
-    private let conversationId = UUID().uuidString
 
     init(session: ChatSession) {
         self.session = session
@@ -68,12 +67,12 @@ class MessageViewModel: ObservableObject {
                 stream = try await backendService.analyzeHealthData(
                     csvFilePath: csvPath,
                     userInput: userInput,
-                    conversationId: conversationId
+                    conversationId: session.conversationId
                 )
             } else {
                 stream = try await backendService.simpleChat(
                     userInput: userInput,
-                    conversationId: conversationId
+                    conversationId: session.conversationId
                 )
             }
 
