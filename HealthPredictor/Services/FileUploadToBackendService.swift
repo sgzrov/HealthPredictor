@@ -28,13 +28,21 @@ class FileUploadToBackendService: FileUploadToBackendServiceProtocol {
     }
 
     func uploadHealthDataFile(fileData: Data) async throws -> String {
+        print("🔍 UPLOAD: uploadHealthDataFile called")
+        print("🔍 UPLOAD: File data size: \(fileData.count) bytes")
+
         let fields: [MultipartField] = [
             .file(name: "file", filename: "user_health_data.csv", contentType: "text/csv", data: fileData)
         ]
+        print("🔍 UPLOAD: Created multipart fields")
 
         let boundary = UUID().uuidString
-        let body = MultipartFormBuilder.buildMultipartForm(fields: fields, boundary: boundary)
+        print("🔍 UPLOAD: Generated boundary: \(boundary)")
 
+        let body = MultipartFormBuilder.buildMultipartForm(fields: fields, boundary: boundary)
+        print("🔍 UPLOAD: Built multipart form, body size: \(body.count) bytes")
+
+        print("🔍 UPLOAD: Creating authenticated request")
         var request = try await authService.authenticatedRequest(
             for: "/upload-health-data/",
             method: "POST",
@@ -42,29 +50,33 @@ class FileUploadToBackendService: FileUploadToBackendServiceProtocol {
         )
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
-        print("🔧 uploadHealthDataFile: Request prepared with \(body.count) bytes")
-        print("🔧 uploadHealthDataFile: Request headers: \(request.allHTTPHeaderFields ?? [:])")
+        print("🔍 UPLOAD: Request prepared with \(body.count) bytes")
+        print("🔍 UPLOAD: Request headers: \(request.allHTTPHeaderFields ?? [:])")
+        print("🔍 UPLOAD: Request URL: \(request.url?.absoluteString ?? "nil")")
 
+        print("🔍 UPLOAD: Starting data task")
         let (data, response) = try await URLSession.shared.data(for: request)
+        print("🔍 UPLOAD: Data task completed")
 
         if let httpResponse = response as? HTTPURLResponse {
-            print("🔧 uploadHealthDataFile: Response status: \(httpResponse.statusCode)")
-            print("🔧 uploadHealthDataFile: Response headers: \(httpResponse.allHeaderFields)")
+            print("🔍 UPLOAD: Response status: \(httpResponse.statusCode)")
+            print("🔍 UPLOAD: Response headers: \(httpResponse.allHeaderFields)")
         }
 
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            print("🔧 uploadHealthDataFile: Upload failed with status: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
-            print("🔧 uploadHealthDataFile: Response data: \(String(data: data, encoding: .utf8) ?? "nil")")
+            print("🔍 UPLOAD: Upload failed with status: \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            print("🔍 UPLOAD: Response data: \(String(data: data, encoding: .utf8) ?? "nil")")
             throw NetworkError.uploadFailed
         }
 
+        print("🔍 UPLOAD: Upload successful, decoding response")
         do {
             let uploadResponse = try JSONDecoder().decode(UploadResponse.self, from: data)
-            print("🔧 uploadHealthDataFile: Successfully uploaded, S3 URL: \(uploadResponse.s3Url)")
+            print("🔍 UPLOAD: Successfully uploaded, S3 URL: \(uploadResponse.s3Url)")
             return uploadResponse.s3Url
         } catch {
-            print("🔧 uploadHealthDataFile: Decoding error: \(error)")
-            print("🔧 uploadHealthDataFile: Response data: \(String(data: data, encoding: .utf8) ?? "nil")")
+            print("🔍 UPLOAD: Decoding error: \(error)")
+            print("🔍 UPLOAD: Response data: \(String(data: data, encoding: .utf8) ?? "nil")")
             throw NetworkError.decodingError
         }
     }
