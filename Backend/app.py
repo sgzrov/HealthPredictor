@@ -99,6 +99,8 @@ def process_streaming_response(response: Any, conversation_callback: Optional[Ca
     yield f"data: {json.dumps({'content': '', 'done': True})}\n\n"
 
 def setup_conversation_history(conversation_id: Optional[str], user_input: str) -> tuple[Optional[Callable[[str], None]], None]:
+    print(f"[DEBUG] setup_conversation_history called with conversation_id={conversation_id}, user_input={user_input}")
+    logger.info(f"[setup_conversation_history] conversation_id={conversation_id}, user_input={user_input}")
     if not conversation_id:
         return None, None
     chat_agent._append_user_message(conversation_id, user_input)
@@ -121,6 +123,7 @@ def create_streaming_response(generator_func: Callable, **kwargs) -> StreamingRe
 
 @app.post("/analyze-health-data/")
 async def analyze_health_data(request: AnalyzeHealthDataRequest, _ = Depends(verify_clerk_jwt)):
+    print(f"[DEBUG] /analyze-health-data/ called with conversation_id={request.conversation_id}")
     if s3_storage_service is None:
         logger.error("S3 storage service is None")
         raise HTTPException(status_code = 503, detail = "Tigris storage not configured")
