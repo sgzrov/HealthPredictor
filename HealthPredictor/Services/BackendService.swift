@@ -54,3 +54,30 @@ class BackendService {
         return try await fileUploadService.uploadHealthDataFile(fileData: fileData)
     }
 }
+
+extension BackendService {
+    func fetchChatSessions(userToken: String, completion: @escaping ([String]) -> Void) {
+        guard let url = URL(string: "https://your-backend-domain/chat-sessions/") else { return }
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(userToken)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data,
+                  let result = try? JSONDecoder().decode([String: [String]].self, from: data),
+                  let ids = result["conversation_ids"] else { return }
+            DispatchQueue.main.async { completion(ids) }
+        }.resume()
+    }
+
+    func fetchChatHistory(conversationId: String, userToken: String, completion: @escaping ([ChatMessage]) -> Void) {
+        guard let url = URL(string: "https://your-backend-domain/chat-history/\(conversationId)") else { return }
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(userToken)", forHTTPHeaderField: "Authorization")
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data,
+                  let messages = try? decoder.decode([ChatMessage].self, from: data) else { return }
+            DispatchQueue.main.async { completion(messages) }
+        }.resume()
+    }
+}
