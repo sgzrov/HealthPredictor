@@ -1,7 +1,9 @@
 import logging
 import openai
-from typing import BinaryIO, Optional, Dict, List, Any, Generator
+from typing import BinaryIO, Optional, List, Any, Generator
 from dataclasses import dataclass
+
+from Backend.Database.chat_history import add_chat_message, get_chat_history
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -17,8 +19,6 @@ class ChatAgent:
         self.api_key = api_key
         self.model = model
         self.client = openai.OpenAI(api_key = api_key)
-        self.conversation_histories: Dict[str, List[Message]] = {}
-
         try:
             with open(prompt_path, "r", encoding = "utf-8") as f:
                 self.prompt = f.read()
@@ -26,45 +26,49 @@ class ChatAgent:
             logger.error(f"Error reading prompt file: {e}")
             raise
 
-    def _append_message(self, conversation_id: str, role: str, content: str) -> None:
-        # Accept any string as conversation_id from frontend
-        if not conversation_id or not content.strip():
+    def _append_user_message(self, conversation_id: str, user_id: str, user_message: str) -> None:
+        if not conversation_id or not user_message.strip():
             return
-        if conversation_id not in self.conversation_histories:
-            self.conversation_histories[conversation_id] = []
-        message = Message(role=role, content=content.strip())
-        self.conversation_histories[conversation_id].append(message)
-        logger.debug(f"[DEBUG] After appending {role}: {self.conversation_histories[conversation_id]}")
+        add_chat_message(conversation_id, user_id, "user", user_message.strip())
+        logger.info(f"[CONV] User message appended to DB ({conversation_id}, {user_id}): {user_message.strip()}")
 
-    def _append_user_message(self, conversation_id: str, user_message: str) -> None:
-        self._append_message(conversation_id, "user", user_message)
-        log = f"[CONV] After user append ({conversation_id}): {[{'role': m.role, 'content': m.content} for m in self.conversation_histories.get(conversation_id, [])]}"
-        logger.info(log)
-        print(log)
+    def _append_assistant_response(self, conversation_id: str, user_id: str, full_response: str) -> None:
+        if not conversation_id or not full_response.strip():
+            return
+        add_chat_message(conversation_id, user_id, "assistant", full_response.strip())
+        logger.info(f"[CONV] Assistant response appended to DB ({conversation_id}, {user_id}): {full_response.strip()}")
 
-    def _append_assistant_response(self, conversation_id: str, full_response: str) -> None:
-        self._append_message(conversation_id, "assistant", full_response)
-        log = f"[CONV] After assistant append ({conversation_id}): {[{'role': m.role, 'content': m.content} for m in self.conversation_histories.get(conversation_id, [])]}"
-        logger.info(log)
-        print(log)
+    def _append_partial_assistant_response(self, conversation_id: str, user_id: str, partial_response: str) -> None:
+        if not conversation_id or not partial_response.strip():
+            return
+        # Upsert the latest assistant message for this conversation
+        from Backend.Database.chat_history import upsert_chat_message
+        upsert_chat_message(conversation_id, user_id, "assistant", partial_response.strip())
+        logger.info(f"[CONV] Partial assistant response upserted to DB ({conversation_id}, {user_id}): {partial_response.strip()}")
 
-    def _get_history_context(self, conversation_id: Optional[str]) -> str:
-        history = self.conversation_histories.get(conversation_id, []) if conversation_id else []
-        log1 = f"[CONV] Building context for {conversation_id}: {[{'role': m.role, 'content': m.content} for m in history]}"
-        logger.info(log1)
-        print(log1)
+    def _get_history_context(self, conversation_id: Optional[str], user_id: Optional[str]) -> str:
+        if not conversation_id or not user_id:
+            return ""
+
+        db_history = get_chat_history(conversation_id, user_id)
         conversation_context = ""
-        for message in history:
+        for message in db_history:
             role = "User" if message.role == "user" else "Assistant"
             conversation_context += f"{role}: {message.content}\n"
-        log2 = f"[CONV] Final context string for LLM ({conversation_id}):\n{conversation_context.strip()}"
-        logger.info(log2)
-        print(log2)
+        logger.info(f"[CONV] Context for LLM ({conversation_id}, {user_id}):\n{conversation_context.strip()}")
         return conversation_context.strip()
 
-    def simple_chat(self, user_input: str, prompt: Optional[str] = None,
-                   conversation_id: Optional[str] = None) -> Generator[Any, None, None]:
-        conversation_context = self._get_history_context(conversation_id)
+    def get_conversation_history(self, conversation_id: str) -> List[Message]:
+        db_history = get_chat_history(conversation_id)
+        messages = []
+        for m in db_history:
+            msg = Message(role = m.role, content = m.content)
+            messages.append(msg)
+        return messages
+
+    def simple_chat(self, user_input: str, user_id: str, prompt: Optional[str] = None,
+                    conversation_id: Optional[str] = None) -> Generator[Any, None, None]:
+        conversation_context = self._get_history_context(conversation_id, user_id)
         instructions = prompt if prompt is not None else self.prompt
 
         try:
@@ -73,7 +77,6 @@ class ChatAgent:
                 input = f"{instructions}\nConversation:\n{conversation_context}\nUser: {user_input}",
                 stream = True
             )
-
             for chunk in response:
                 yield chunk
         except openai.APIError as e:
@@ -83,10 +86,10 @@ class ChatAgent:
             logger.error(f"Unexpected error in simple_chat: {e}")
             raise
 
-    def analyze_health_data(self, file_obj: BinaryIO, user_input: str,
+    def analyze_health_data(self, file_obj: BinaryIO, user_input: str, user_id: str,
                           prompt: Optional[str] = None, conversation_id: Optional[str] = None,
                           filename: str = "user_health_data.csv") -> Generator[Any, None, None]:
-        conversation_context = self._get_history_context(conversation_id)
+        conversation_context = self._get_history_context(conversation_id, user_id)
         instructions = prompt if prompt is not None else self.prompt
 
         try:
@@ -95,7 +98,6 @@ class ChatAgent:
                 file = (filename, file_obj, "text/csv"),
                 purpose = "assistants"
             )
-
             response = self.client.responses.create(
                 model = self.model,
                 tools = [
@@ -111,7 +113,6 @@ class ChatAgent:
                 input = f"{conversation_context}\nUser: {user_input}",
                 stream = True
             )
-
             for chunk in response:
                 yield chunk
         except openai.APIError as e:
@@ -120,11 +121,3 @@ class ChatAgent:
         except Exception as e:
             logger.error(f"Unexpected error in analyze_health_data: {e}")
             raise
-
-    def clear_conversation(self, conversation_id: str) -> None:
-        if conversation_id in self.conversation_histories:
-            del self.conversation_histories[conversation_id]
-            logger.debug(f"[DEBUG] Cleared conversation history for {conversation_id}")
-
-    def get_conversation_history(self, conversation_id: str) -> List[Message]:
-        return self.conversation_histories.get(conversation_id, [])
