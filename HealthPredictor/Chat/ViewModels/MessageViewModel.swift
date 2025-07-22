@@ -18,13 +18,22 @@ class MessageViewModel: ObservableObject {
     private let session: ChatSession
     private let backendService = BackendService.shared
     private let healthFileCacheService = UserFileCacheService.shared
+    private let userToken: String
 
-    init(session: ChatSession) {
+    init(session: ChatSession, userToken: String) {
         self.session = session
-        self.messages = session.messages
+        self.userToken = userToken
+        refreshMessages()
     }
 
     private static let streamingDelay: UInt64 = 4_000_000 // For slowed streaming (better UI)
+
+    func refreshMessages() {
+        backendService.fetchChatHistory(conversationId: session.conversationId, userToken: userToken) { messages in
+            self.messages = messages
+            self.session.messages = messages
+        }
+    }
 
     func sendMessage() {
         guard !inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
@@ -45,6 +54,7 @@ class MessageViewModel: ObservableObject {
             session.messages = messages
 
             await processMessage(userInput: userInput)
+            refreshMessages()
         }
     }
 
@@ -84,7 +94,6 @@ class MessageViewModel: ObservableObject {
     }
 
     private func handleStreamingResponse(stream: AsyncStream<String>) async {
-        // Use the existing streaming message (last message in the array)
         let messageIndex = messages.count - 1
         var fullContent = ""
 
@@ -139,6 +148,7 @@ class MessageViewModel: ObservableObject {
 
         Task {
             await processMessage(userInput: lastUserMessage.content)
+            refreshMessages()
         }
     }
 }
