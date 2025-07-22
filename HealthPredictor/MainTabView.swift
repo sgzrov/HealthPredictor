@@ -6,9 +6,14 @@
 //
 
 import SwiftUI
+import Clerk
 
 struct MainTabView: View {
+
     @State private var healthDataSetup = false
+    @State private var userToken: String = ""
+
+    @Environment(Clerk.self) private var clerk
 
     var body: some View {
         TabView {
@@ -17,7 +22,7 @@ struct MainTabView: View {
                     Image(systemName: "list.bullet.rectangle")
                     Text("Studies")
                 }
-            MainChatView()
+            MainChatView(userToken: userToken)
                 .tabItem {
                     Image(systemName: "message")
                     Text("Chat")
@@ -27,7 +32,6 @@ struct MainTabView: View {
                     Image(systemName: "gear")
                     Text("Settings")
                 }
-
         }
         .toolbarBackground(.visible, for: .tabBar)
         .toolbarBackground(Color.black.opacity(0.8), for: .tabBar)
@@ -45,6 +49,12 @@ struct MainTabView: View {
                 }
 
                 healthDataSetup = true
+            }
+            // Fetch userToken using AuthService
+            do {
+                userToken = try await AuthService.getAuthToken()
+            } catch {
+                print("Failed to get Clerk JWT: \(error)")
             }
         }
     }
