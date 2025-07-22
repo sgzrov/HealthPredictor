@@ -2,7 +2,7 @@ import os
 import logging
 import json
 import io
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Depends
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Request
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -14,6 +14,7 @@ from Backend.Agents.study_summary_agent import StudySummaryAgent
 from Backend.Agents.Helpers.code_interpreter_selector import CodeInterpreterSelector
 from Backend.auth import verify_clerk_jwt
 from Backend.s3_storage_service import S3StorageService
+from Backend.Database.chat_history import get_chat_history, get_all_conversation_ids
 
 from Backend.text_extraction_router import router as text_extraction_router
 
@@ -85,30 +86,36 @@ def extract_text_from_chunk(chunk: Any, full_response: str = "") -> str:
                 return remaining_text or ""
     return ""
 
-def process_streaming_response(response: Any, conversation_callback: Optional[Callable[[str], None]] = None) -> Any:
+def process_streaming_response(response: Any, conversation_callback: Optional[Callable[[str], None]] = None, partial_callback: Optional[Callable[[str], None]] = None) -> Any:
     full_response = ""
 
     for chunk in response:
         text = extract_text_from_chunk(chunk, full_response)
         if text:
             full_response += text
+            # Save partial assistant response as it streams
+            if partial_callback and full_response.strip():
+                partial_callback(full_response.strip())
             yield f"data: {json.dumps({'content': text, 'done': False})}\n\n"
 
     if conversation_callback and full_response.strip():
         conversation_callback(full_response.strip())
     yield f"data: {json.dumps({'content': '', 'done': True})}\n\n"
 
-def setup_conversation_history(conversation_id: Optional[str], user_input: str) -> tuple[Optional[Callable[[str], None]], None]:
-    print(f"[DEBUG] setup_conversation_history called with conversation_id={conversation_id}, user_input={user_input}")
-    logger.info(f"[setup_conversation_history] conversation_id={conversation_id}, user_input={user_input}")
+def setup_conversation_history(conversation_id: Optional[str], user_input: str, user_id: str):
+    print(f"[DEBUG] setup_conversation_history called with conversation_id={conversation_id}, user_input={user_input}, user_id={user_id}")
+    logger.info(f"[setup_conversation_history] conversation_id={conversation_id}, user_input={user_input}, user_id={user_id}")
     if not conversation_id:
-        return None, None
-    chat_agent._append_user_message(conversation_id, user_input)
+        return None, None, None
+    chat_agent._append_user_message(conversation_id, user_id, user_input)
 
     def save_conversation(full_response: str) -> None:
-        chat_agent._append_assistant_response(conversation_id, full_response)
+        chat_agent._append_assistant_response(conversation_id, user_id, full_response)
 
-    return save_conversation, None
+    def save_partial_conversation(partial_response: str) -> None:
+        chat_agent._append_partial_assistant_response(conversation_id, user_id, partial_response)
+
+    return save_conversation, save_partial_conversation, None
 
 def create_streaming_response(generator_func: Callable, **kwargs) -> StreamingResponse:
     return StreamingResponse(
@@ -122,8 +129,10 @@ def create_streaming_response(generator_func: Callable, **kwargs) -> StreamingRe
     )
 
 @app.post("/analyze-health-data/")
-async def analyze_health_data(request: AnalyzeHealthDataRequest, _ = Depends(verify_clerk_jwt)):
-    print(f"[DEBUG] /analyze-health-data/ called with conversation_id={request.conversation_id}")
+async def analyze_health_data(request: AnalyzeHealthDataRequest, req: Request):
+    user = verify_clerk_jwt(req)
+    user_id = user['sub']
+    print(f"[DEBUG] /analyze-health-data/ called with conversation_id={request.conversation_id}, user_id={user_id}")
     if s3_storage_service is None:
         logger.error("S3 storage service is None")
         raise HTTPException(status_code = 503, detail = "Tigris storage not configured")
@@ -133,12 +142,12 @@ async def analyze_health_data(request: AnalyzeHealthDataRequest, _ = Depends(ver
         logger.info(f"[analyze-health-data] File downloaded from S3: {request.s3_url}")
 
         user_input_str = request.user_input
-        save_conversation, _ = setup_conversation_history(request.conversation_id, user_input_str)
+        save_conversation, save_partial_conversation, _ = setup_conversation_history(request.conversation_id, user_input_str, user_id)
 
         async def generate_stream():
             try:
-                response = chat_agent.analyze_health_data(file_obj, user_input_str, conversation_id = request.conversation_id)
-                for event in process_streaming_response(response, save_conversation):
+                response = chat_agent.analyze_health_data(file_obj, user_input_str, user_id, conversation_id = request.conversation_id)
+                for event in process_streaming_response(response, save_conversation, save_partial_conversation):
                     yield event
             except Exception as e:
                 logger.error(f"Health analysis error: {e}")
@@ -151,16 +160,18 @@ async def analyze_health_data(request: AnalyzeHealthDataRequest, _ = Depends(ver
         raise HTTPException(status_code = 500, detail = str(e))
 
 @app.post("/simple-chat/")
-async def simple_chat(request: SimpleChatRequest, _ = Depends(verify_clerk_jwt)):
+async def simple_chat(request: SimpleChatRequest, req: Request):
+    user = verify_clerk_jwt(req)
+    user_id = user['sub']
     try:
-        save_conversation, _ = setup_conversation_history(request.conversation_id, request.user_input)
+        save_conversation, save_partial_conversation, _ = setup_conversation_history(request.conversation_id, request.user_input, user_id)
 
         async def generate_stream():
             try:
                 with open(PROMPT_PATHS["simple_chat"], "r", encoding = "utf-8") as f:
                     simple_chat_prompt = f.read()
-                response = chat_agent.simple_chat(request.user_input, prompt = simple_chat_prompt, conversation_id = request.conversation_id)
-                for event in process_streaming_response(response, save_conversation):
+                response = chat_agent.simple_chat(request.user_input, user_id, prompt = simple_chat_prompt, conversation_id = request.conversation_id)
+                for event in process_streaming_response(response, save_conversation, save_partial_conversation):
                     yield event
             except Exception as e:
                 logger.error(f"Simple chat error: {e}")
@@ -243,6 +254,30 @@ async def upload_health_data(file: UploadFile = File(...), user = Depends(verify
     except Exception as e:
         logger.error(f"Error uploading health data: {e}")
         raise HTTPException(status_code = 500, detail = str(e))
+
+@app.get("/chat-history/{conversation_id}")
+def fetch_chat_history(conversation_id: str, request: Request):
+    user = verify_clerk_jwt(request)
+    user_id = user['sub']
+    messages = get_chat_history(conversation_id, user_id)
+    print(f"[PRINT][API] FETCH: conv_id={conversation_id}, user_id={user_id}, num_messages={len(messages)}")
+    import logging
+    logger = logging.getLogger("chat_history")
+    logger.info(f"[API] FETCH: conv_id={conversation_id}, user_id={user_id}, num_messages={len(messages)}")
+    return [
+        {
+            "role": m.role,
+            "content": m.content,
+            "timestamp": m.timestamp.isoformat() if m.timestamp else None
+        }
+        for m in messages
+    ]
+
+@app.get("/chat-sessions/")
+def list_chat_sessions(request: Request):
+    user = verify_clerk_jwt(request)
+    user_id = user['sub']
+    return {"conversation_ids": get_all_conversation_ids(user_id)}
 
 if __name__ == "__main__":
     import uvicorn
