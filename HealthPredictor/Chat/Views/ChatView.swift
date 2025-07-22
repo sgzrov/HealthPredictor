@@ -17,15 +17,19 @@ struct ChatView: View {
 
     var newSessionHandler: ((ChatSession) -> Void)?
 
-    init(session: ChatSession) {
+    let userToken: String
+
+    init(session: ChatSession, userToken: String) {
         self.session = session
-        self._messageVM = StateObject(wrappedValue: MessageViewModel(session: session))
+        self.userToken = userToken
+        self._messageVM = StateObject(wrappedValue: MessageViewModel(session: session, userToken: userToken))
     }
 
-    init(newSessionHandler: @escaping (ChatSession) -> Void) {
+    init(userToken: String, newSessionHandler: @escaping (ChatSession) -> Void) {
         let newSession = ChatSession()
         self.session = newSession
-        self._messageVM = StateObject(wrappedValue: MessageViewModel(session: newSession))
+        self.userToken = userToken
+        self._messageVM = StateObject(wrappedValue: MessageViewModel(session: newSession, userToken: userToken))
         self.newSessionHandler = newSessionHandler
     }
 
@@ -68,5 +72,5 @@ struct ChatView: View {
 }
 
 #Preview {
-    ChatView(session: ChatSession(title: "Test Chat"))
+    ChatView(session: ChatSession(title: "Test Chat"), userToken: "PREVIEW_TOKEN")
 }
