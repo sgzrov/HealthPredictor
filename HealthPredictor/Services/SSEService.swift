@@ -49,6 +49,8 @@ class SSEService: NSObject, URLSessionDataDelegate, SSEServiceProtocol {
     }
 
     func streamSSE(request: URLRequest) async throws -> AsyncStream<String> {
+        print("[SSEService] Starting SSE stream with URL: \(request.url?.absoluteString ?? "nil")")
+        print("[SSEService] Request headers: \(request.allHTTPHeaderFields ?? [:])")
         return AsyncStream<String> { continuation in
             let delegate = SSEStreamDelegate(continuation: continuation)
             let config = URLSessionConfiguration.default
@@ -64,6 +66,7 @@ class SSEService: NSObject, URLSessionDataDelegate, SSEServiceProtocol {
                 modifiedRequest.setValue(contentType, forHTTPHeaderField: "Content-Type")
             }
 
+            print("[SSEService] Initiating data task...")
             delegate.dataTask = session.dataTask(with: modifiedRequest)
             delegate.dataTask?.resume()
 
@@ -72,18 +75,22 @@ class SSEService: NSObject, URLSessionDataDelegate, SSEServiceProtocol {
                     receiveCompletion: { completion in
                         switch completion {
                         case .finished:
+                            print("[SSEService] Stream finished.")
                             continuation.finish()
                         case .failure(let error):
+                            print("[SSEService] Stream error: \(error.localizedDescription)")
                             continuation.yield("Error: \(error.localizedDescription)")
                             continuation.finish()
                         }
                     },
                     receiveValue: { event in
+                        print("[SSEService] Received event: \(event)")
                         delegate.handleSSEEvent(event)
                     }
                 )
 
             continuation.onTermination = { _ in
+                print("[SSEService] Stream terminated by consumer.")
                 cancellable.cancel()
                 delegate.dataTask?.cancel()
             }
@@ -104,8 +111,10 @@ class SSEStreamDelegate: NSObject, URLSessionDataDelegate {
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         guard let receivedString = String(data: data, encoding: .utf8) else {
+            print("[SSEStreamDelegate] Received non-UTF8 data chunk.")
             return
         }
+        print("[SSEStreamDelegate] Received data chunk: \(receivedString.prefix(200))")
         if receivedString.contains("\"error\"") && !receivedString.contains("data:") {
             let error = NSError(domain: "SSE", code: -1, userInfo: [NSLocalizedDescriptionKey: "Backend error: \(receivedString)"])
             eventPublisher.send(completion: .failure(error))
@@ -128,10 +137,9 @@ class SSEStreamDelegate: NSObject, URLSessionDataDelegate {
             let events = eventBuffer.components(separatedBy: "\n\n")
             if events.count > 1 {
                 eventBuffer = events.last ?? ""
-                for eventString in events.dropLast() {
-                    if !eventString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        parseEvent(eventString)
-                    }
+                for eventString in events.dropLast() where !eventString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    print("[SSEStreamDelegate] Parsing event string: \(eventString.prefix(200))")
+                    parseEvent(eventString)
                 }
             }
         }
@@ -159,6 +167,7 @@ class SSEStreamDelegate: NSObject, URLSessionDataDelegate {
                 eventId = line.dropFirst(3).trimmingCharacters(in: .whitespaces)
             }
         }
+        print("[SSEStreamDelegate] Parsed eventType: \(eventType), eventId: \(eventId ?? "nil"), eventData: \(eventData.prefix(200)))")
         if !eventData.isEmpty {
             let event = SSEEvent(type: eventType, data: eventData, id: eventId)
             eventPublisher.send(event)
@@ -166,18 +175,22 @@ class SSEStreamDelegate: NSObject, URLSessionDataDelegate {
     }
 
     func handleSSEEvent(_ event: SSEEvent) {
+        print("[SSEStreamDelegate] Handling SSEEvent: type=\(event.type), id=\(event.id ?? "nil"), data=\(event.data.prefix(200)))")
         switch event.type {
         case .message:
             let jsonData = Data(event.data.utf8)
             if let chunk = try? JSONDecoder().decode(StreamingChunk.self, from: jsonData) {
                 if let error = chunk.error {
+                    print("[SSEStreamDelegate] StreamingChunk error: \(error)")
                     continuation.yield("Error: \(error)")
                     return
                 }
                 if let content = chunk.content, !content.isEmpty {
+                    print("[SSEStreamDelegate] StreamingChunk content: \(content.prefix(200)))")
                     continuation.yield(content)
                 }
                 if chunk.done {
+                    print("[SSEStreamDelegate] StreamingChunk done.")
                     continuation.finish()
                 }
             } else {
@@ -185,13 +198,16 @@ class SSEStreamDelegate: NSObject, URLSessionDataDelegate {
                     if let contentStart = event.data.range(of: "\"content\":\"")?.upperBound,
                        let contentEnd = event.data[contentStart...].range(of: "\"")?.lowerBound {
                         let content = String(event.data[contentStart..<contentEnd])
+                        print("[SSEStreamDelegate] Fallback content parse: \(content.prefix(200)))")
                         continuation.yield(content)
                     }
                 }
             }
         case .error:
+            print("[SSEStreamDelegate] SSEEvent error: \(event.data)")
             continuation.yield("Error: \(event.data)")
         case .done:
+            print("[SSEStreamDelegate] SSEEvent done.")
             continuation.finish()
         }
     }
@@ -200,6 +216,7 @@ class SSEStreamDelegate: NSObject, URLSessionDataDelegate {
 extension SSEStreamDelegate {
     func urlSession(_ session: URLSession, task: URLSessionTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         if let httpResponse = response as? HTTPURLResponse {
+            print("[SSEStreamDelegate] Received HTTP response: \(httpResponse.statusCode)")
             if httpResponse.statusCode >= 400 {
                 let error = NSError(domain: "SSE", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "HTTP \(httpResponse.statusCode)"])
                 eventPublisher.send(completion: .failure(error))
