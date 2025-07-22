@@ -11,10 +11,17 @@ struct MainChatView: View {
 
     @Environment(\.colorScheme) private var colorScheme
 
-    @StateObject private var chatHistoryVM = ChatHistoryViewModel()
+    @StateObject private var chatHistoryVM: ChatHistoryViewModel
 
     @State private var navigateToChat: ChatSession?
     @State private var pendingNewChat = false
+
+    let userToken: String
+
+    init(userToken: String) {
+        self.userToken = userToken
+        _chatHistoryVM = StateObject(wrappedValue: ChatHistoryViewModel(userToken: userToken))
+    }
 
     var borderColor: Color? {
         colorScheme == .dark ? Color.gray.opacity(0.4) : nil
@@ -131,14 +138,14 @@ struct MainChatView: View {
                     }
                 }
                 .navigationDestination(isPresented: $pendingNewChat) {
-                    ChatView(newSessionHandler: { session in
+                    ChatView(userToken: userToken, newSessionHandler: { session in
                         chatHistoryVM.chatSessions.insert(session, at: 0)
                         navigateToChat = session
                         pendingNewChat = false
                     })
                 }
                 .navigationDestination(item: $navigateToChat) { session in
-                    ChatView(session: session)
+                    ChatView(session: session, userToken: userToken)
                 }
             }
         }
@@ -146,5 +153,5 @@ struct MainChatView: View {
 }
 
 #Preview {
-    MainChatView()
+    MainChatView(userToken: "PREVIEW_TOKEN")
 }
