@@ -57,7 +57,7 @@ class BackendService {
 
 extension BackendService {
     func fetchChatSessions(userToken: String, completion: @escaping ([String]) -> Void) {
-        guard let url = URL(string: "https://your-backend-domain/chat-sessions/") else { return }
+        guard let url = URL(string: "\(APIConstants.baseURL)/chat-sessions/") else { return }
         var request = URLRequest(url: url)
         request.setValue("Bearer \(userToken)", forHTTPHeaderField: "Authorization")
         URLSession.shared.dataTask(with: request) { data, _, _ in
@@ -69,7 +69,7 @@ extension BackendService {
     }
 
     func fetchChatHistory(conversationId: String, userToken: String, completion: @escaping ([ChatMessage]) -> Void) {
-        guard let url = URL(string: "https://your-backend-domain/chat-history/\(conversationId)") else { return }
+        guard let url = URL(string: "\(APIConstants.baseURL)/chat-history/\(conversationId)") else { return }
         var request = URLRequest(url: url)
         request.setValue("Bearer \(userToken)", forHTTPHeaderField: "Authorization")
         let decoder = JSONDecoder()
