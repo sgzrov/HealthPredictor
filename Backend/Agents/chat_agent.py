@@ -3,7 +3,7 @@ import openai
 from typing import BinaryIO, Optional, List, Any, Generator
 from dataclasses import dataclass
 
-from Backend.Database.chat_history import add_chat_message, get_chat_history
+from Backend.Database.chat_history import add_chat_message, get_chat_history, upsert_chat_message
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -35,14 +35,12 @@ class ChatAgent:
     def _append_assistant_response(self, conversation_id: str, user_id: str, full_response: str) -> None:
         if not conversation_id or not full_response.strip():
             return
-        add_chat_message(conversation_id, user_id, "assistant", full_response.strip())
-        logger.info(f"[CONV] Assistant response appended to DB ({conversation_id}, {user_id}): {full_response.strip()}")
+        upsert_chat_message(conversation_id, user_id, "assistant", full_response.strip())
+        logger.info(f"[CONV] Assistant response upserted to DB ({conversation_id}, {user_id}): {full_response.strip()}")
 
     def _append_partial_assistant_response(self, conversation_id: str, user_id: str, partial_response: str) -> None:
         if not conversation_id or not partial_response.strip():
             return
-        # Upsert the latest assistant message for this conversation
-        from Backend.Database.chat_history import upsert_chat_message
         upsert_chat_message(conversation_id, user_id, "assistant", partial_response.strip())
         logger.info(f"[CONV] Partial assistant response upserted to DB ({conversation_id}, {user_id}): {partial_response.strip()}")
 
