@@ -49,11 +49,7 @@ struct ChatView: View {
                     withAnimation {
                         proxy.scrollTo(newValue.last?.id, anchor: .bottom)
                     }
-
-                    if !hasSentFirstMessage && oldValue.isEmpty && !newValue.isEmpty {
-                        hasSentFirstMessage = true
-                        newSessionHandler?(session)
-                    }
+                    // Removed newSessionHandler call to prevent duplicate assistant responses and session insertions
                 }
             }
 
@@ -68,6 +64,9 @@ struct ChatView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(session.title)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            messageVM.refreshMessages()
+        }
     }
 }
 
