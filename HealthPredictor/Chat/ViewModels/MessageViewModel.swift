@@ -11,7 +11,7 @@ import SwiftUI
 @MainActor
 class MessageViewModel: ObservableObject {
 
-    @Published var messages: [ChatMessage] = []
+    @Published var messages: [ChatMessage]
     @Published var inputMessage: String = ""
     @Published var isLoading: Bool = false
 
@@ -23,13 +23,15 @@ class MessageViewModel: ObservableObject {
     init(session: ChatSession, userToken: String) {
         self.session = session
         self.userToken = userToken
-        refreshMessages()
+        self.messages = session.messages // Preload messages from session
     }
 
     private static let streamingDelay: UInt64 = 4_000_000 // For slowed streaming (better UI)
 
     func refreshMessages() {
+        print("Refreshing messages for session: \(session.conversationId)")
         backendService.fetchChatHistory(conversationId: session.conversationId, userToken: userToken) { messages in
+            print("Fetched \(messages.count) messages from backend for session: \(self.session.conversationId)")
             self.messages = messages
             self.session.messages = messages
         }
@@ -54,7 +56,6 @@ class MessageViewModel: ObservableObject {
             session.messages = messages
 
             await processMessage(userInput: userInput)
-            refreshMessages()
         }
     }
 
@@ -112,6 +113,11 @@ class MessageViewModel: ObservableObject {
         }
         messages[messageIndex].state = .complete
         session.messages = messages
+
+        // After streaming is done, reload from backend to avoid duplicates
+        await MainActor.run {
+            self.refreshMessages()
+        }
     }
 
     private func addErrorMessage(_ debugInfo: String) {
