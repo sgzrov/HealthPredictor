@@ -63,7 +63,7 @@ class SimpleChatRequest(BaseModel):
 
 class AnalyzeHealthDataRequest(BaseModel):
     s3_url: str
-    user_input: str  # Now required
+    user_input: str
     conversation_id: Optional[str] = None
 
 class GenerateOutcomeRequest(BaseModel):
@@ -93,9 +93,6 @@ def process_streaming_response(response: Any, conversation_callback: Optional[Ca
         text = extract_text_from_chunk(chunk, full_response)
         if text:
             full_response += text
-            # Save partial assistant response as it streams
-            if partial_callback and full_response.strip():
-                partial_callback(full_response.strip())
             yield f"data: {json.dumps({'content': text, 'done': False})}\n\n"
 
     if conversation_callback and full_response.strip():
