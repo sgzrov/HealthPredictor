@@ -14,6 +14,7 @@ class ChatHistoryViewModel: ObservableObject {
     @Published var chatSessions: [ChatSession] = []
     @Published var selectedSession: ChatSession?
     @Published var searchText: String = ""
+
     var userToken: String
 
     init(userToken: String) {
