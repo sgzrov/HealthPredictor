@@ -31,7 +31,6 @@ class AgentBackendService: AgentBackendServiceProtocol {
         self.fileUploadService = FileUploadToBackendService.shared
     }
 
-    // MARK: - Code Interpreter Detection
     func shouldUseCodeInterpreter(userInput: String) async throws -> String {
         let body: [String: Any] = ["user_input": userInput]
         let jsonData = try JSONSerialization.data(withJSONObject: body)
@@ -59,7 +58,6 @@ class AgentBackendService: AgentBackendServiceProtocol {
         }
     }
 
-    // MARK: - Health Data Analysis
     func analyzeHealthDataStream(csvFilePath: String, userInput: String?, conversationId: String?) async throws -> AsyncStream<String> {
         print("🔍 AGENT: analyzeHealthDataStream called")
         print("🔍 AGENT: csvFilePath: \(csvFilePath)")
@@ -124,25 +122,22 @@ class AgentBackendService: AgentBackendServiceProtocol {
         return try await sseService.streamSSE(request: request)
     }
 
-    // MARK: - Simple Chat
     func simpleChatStream(userInput: String, conversationId: String?) async throws -> AsyncStream<String> {
-        let body: [String: Any] = ["user_input": userInput]
+        var body: [String: Any] = ["user_input": userInput]
+        if let conversationId = conversationId {
+            body["conversation_id"] = conversationId
+        }
         let jsonData = try JSONSerialization.data(withJSONObject: body)
 
-        var request = try await authService.authenticatedRequest(
+        let request = try await authService.authenticatedRequest(
             for: "/simple-chat/",
             method: "POST",
             body: jsonData
         )
 
-        if let conversationId = conversationId {
-            request.setValue(conversationId, forHTTPHeaderField: "X-Conversation-ID")
-        }
-
         return try await sseService.streamSSE(request: request)
     }
 
-    // MARK: - Outcome Generation
     func generateOutcomeStream(csvFilePath: String, userInput: String) async throws -> AsyncStream<String> {
         let fileManager = FileManager.default
         guard fileManager.fileExists(atPath: csvFilePath) else {
@@ -175,7 +170,6 @@ class AgentBackendService: AgentBackendServiceProtocol {
         return try await sseService.streamSSE(request: request)
     }
 
-    // MARK: - Study Summarization
     func summarizeStudyStream(userInput: String) async throws -> AsyncStream<String> {
         let body: [String: Any] = ["text": userInput]
         let jsonData = try JSONSerialization.data(withJSONObject: body)
