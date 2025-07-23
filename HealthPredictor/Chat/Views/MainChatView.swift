@@ -14,7 +14,6 @@ struct MainChatView: View {
     @StateObject private var chatHistoryVM: ChatHistoryViewModel
 
     @State private var navigateToChat: ChatSession?
-    @State private var pendingNewChat = false
 
     let userToken: String
 
@@ -123,7 +122,8 @@ struct MainChatView: View {
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: {
-                            pendingNewChat = true
+                            let newSession = chatHistoryVM.createNewChat()
+                            navigateToChat = newSession
                         }) {
                             ZStack {
                                 Circle()
@@ -136,13 +136,6 @@ struct MainChatView: View {
                             }
                         }
                     }
-                }
-                .navigationDestination(isPresented: $pendingNewChat) {
-                    ChatView(userToken: userToken, newSessionHandler: { session in
-                        chatHistoryVM.chatSessions.insert(session, at: 0)
-                        navigateToChat = session
-                        pendingNewChat = false
-                    })
                 }
                 .navigationDestination(item: $navigateToChat) { session in
                     ChatView(session: session, userToken: userToken)
