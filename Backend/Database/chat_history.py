@@ -73,3 +73,23 @@ def upsert_chat_message(conversation_id, user_id, role, content):
             return add_chat_message(conversation_id, user_id, role, content)
     finally:
         session.close()
+
+def get_conversation_last_message_times(user_id):
+    session = SessionLocal()
+    try:
+        results = (
+            session.query(
+                ChatMessageDB.conversation_id,
+                func.max(ChatMessageDB.timestamp).label("last_message_at")
+            )
+            .filter_by(user_id=user_id)
+            .group_by(ChatMessageDB.conversation_id)
+            .order_by(func.max(ChatMessageDB.timestamp).desc())
+            .all()
+        )
+        return [
+            {"conversation_id": row[0], "last_message_at": row[1].isoformat() if row[1] else None}
+            for row in results
+        ]
+    finally:
+        session.close()
