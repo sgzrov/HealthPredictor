@@ -11,6 +11,7 @@ import Clerk
 struct SettingsView: View {
 
     @Environment(Clerk.self) private var clerk
+    var onSignOut: (() -> Void)?
 
     var body: some View {
         NavigationStack {
@@ -48,7 +49,10 @@ struct SettingsView: View {
 
                 Section {
                     Button(role: .destructive) {
-                        Task { try? await clerk.signOut() }
+                        Task {
+                            try? await clerk.signOut()
+                            onSignOut?()
+                        }
                     } label: {
                         HStack {
                             Image(systemName: "arrow.backward.circle")
