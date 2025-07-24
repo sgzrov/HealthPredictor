@@ -14,7 +14,7 @@ from Backend.Agents.study_summary_agent import StudySummaryAgent
 from Backend.Agents.Helpers.code_interpreter_selector import CodeInterpreterSelector
 from Backend.auth import verify_clerk_jwt
 from Backend.s3_storage_service import S3StorageService
-from Backend.Database.chat_history import get_chat_history, get_all_conversation_ids
+from Backend.Database.chat_history import get_chat_history, get_all_conversation_ids, get_conversation_last_message_times
 
 from Backend.text_extraction_router import router as text_extraction_router
 
@@ -256,6 +256,7 @@ async def upload_health_data(file: UploadFile = File(...), user = Depends(verify
 def fetch_chat_history(conversation_id: str, request: Request):
     user = verify_clerk_jwt(request)
     user_id = user['sub']
+    print(f"[DEBUG][API] FETCH CHAT HISTORY: conv_id={conversation_id}, user_id={user_id}")
     messages = get_chat_history(conversation_id, user_id)
     print(f"[PRINT][API] FETCH: conv_id={conversation_id}, user_id={user_id}, num_messages={len(messages)}")
     import logging
@@ -274,7 +275,9 @@ def fetch_chat_history(conversation_id: str, request: Request):
 def list_chat_sessions(request: Request):
     user = verify_clerk_jwt(request)
     user_id = user['sub']
-    return {"conversation_ids": get_all_conversation_ids(user_id)}
+    print(f"[DEBUG][API] LIST CHAT SESSIONS: user_id={user_id}")
+    # Return conversation_id and last_message_at for each session
+    return {"sessions": get_conversation_last_message_times(user_id)}
 
 if __name__ == "__main__":
     import uvicorn
