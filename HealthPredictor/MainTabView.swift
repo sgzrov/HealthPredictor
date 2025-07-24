@@ -25,7 +25,7 @@ struct MainTabView: View {
                     Text("Studies")
                 }
             if !userToken.isEmpty {
-                MainChatView(userToken: userToken)
+            MainChatView(userToken: userToken)
                     .tabItem {
                         Image(systemName: "message")
                         Text("Chat")
@@ -87,8 +87,8 @@ struct MainTabView: View {
                 }
                 healthDataSetup = true
             }
-        } catch {
-            print("Failed to get Clerk JWT: \(error)")
+            } catch {
+                print("Failed to get Clerk JWT: \(error)")
             userToken = ""
             userId = ""
             isSignedIn = false
