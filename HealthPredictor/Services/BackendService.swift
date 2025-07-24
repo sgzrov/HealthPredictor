@@ -8,6 +8,19 @@
 import Foundation
 import Combine
 
+struct SessionDTO: Decodable {
+    let conversationId: String
+    let lastMessageAt: String?
+    enum CodingKeys: String, CodingKey {
+        case conversationId = "conversation_id"
+        case lastMessageAt = "last_message_at"
+    }
+}
+
+struct ChatSessionsResponse: Decodable {
+    let sessions: [SessionDTO]
+}
+
 class BackendService {
 
     static let shared = BackendService()
@@ -63,20 +76,9 @@ extension BackendService {
         request.setValue("Bearer \(userToken)", forHTTPHeaderField: "Authorization")
         URLSession.shared.dataTask(with: request) { data, _, _ in
             guard let data = data else { return }
-            struct SessionDTO: Decodable {
-                let conversationId: String
-                let lastMessageAt: String?
-                enum CodingKeys: String, CodingKey {
-                    case conversationId = "conversation_id"
-                    case lastMessageAt = "last_message_at"
-                }
-            }
-            struct Response: Decodable {
-                let sessions: [SessionDTO]
-            }
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            guard let result = try? decoder.decode(Response.self, from: data) else { return }
+            guard let result = try? decoder.decode(ChatSessionsResponse.self, from: data) else { return }
             let sessions = result.sessions.map { ($0.conversationId, $0.lastMessageAt.flatMap { ISO8601DateFormatter().date(from: $0) }) }
             DispatchQueue.main.async { completion(sessions) }
         }.resume()
