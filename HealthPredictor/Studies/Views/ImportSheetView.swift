@@ -51,11 +51,11 @@ struct ImportSheetView: View {
                     let capturedInput = importVM.importInput
 
                     let url = selectedFileURL ?? URL(string: importVM.importInput)!
-                    let study = Study(
+                    var study = Study(
                         title: url.lastPathComponent,
                         summary: "",
-                        personalizedInsight: "",
-                        sourceURL: url
+                        outcome: "",
+                        importDate: Date()
                     )
                     onImport(study)
                     onDismiss()
@@ -100,7 +100,7 @@ struct ImportSheetView: View {
                             for await outcome in outcomeVM.$outcomeText.values {
                                 if let outcome, !outcome.isEmpty {
                                     await MainActor.run {
-                                        study.personalizedInsight = outcome
+                                        study.outcome = outcome
                                     }
                                 }
                             }
