@@ -18,11 +18,11 @@ protocol SSEServiceProtocol {
 }
 
 protocol AgentBackendServiceProtocol {
-    func analyzeHealthDataStream(csvFilePath: String, userInput: String?, conversationId: String?) async throws -> AsyncStream<String>
+    func chatWithCIStream(csvFilePath: String, userInput: String, conversationId: String?) async throws -> AsyncStream<String>
     func simpleChatStream(userInput: String, conversationId: String?) async throws -> AsyncStream<String>
     func generateOutcomeStream(csvFilePath: String, userInput: String) async throws -> AsyncStream<String>
     func summarizeStudyStream(userInput: String) async throws -> AsyncStream<String>
-    func shouldUseCodeInterpreter(userInput: String) async throws -> String
+    func shouldUseCodeInterpreter(userInput: String) async throws -> Bool
 }
 
 protocol UserFileCacheServiceProtocol {
