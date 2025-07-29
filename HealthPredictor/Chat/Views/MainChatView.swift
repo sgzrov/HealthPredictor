@@ -15,7 +15,7 @@ struct MainChatView: View {
 
     @State private var navigateToChat: ChatSession?
 
-    let userToken: String
+    private let userToken: String
 
     init(userToken: String) {
         self.userToken = userToken
@@ -26,9 +26,9 @@ struct MainChatView: View {
         colorScheme == .dark ? Color.gray.opacity(0.4) : nil
     }
 
-    func formattedDate(_ date: Date) -> String {
+    private func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d'<<suffix>>' yyyy 'at' HH:mm"
+        formatter.dateFormat = "MMM d yyyy 'at' HH:mm"
         let calendar = Calendar.current
         let day = calendar.component(.day, from: date)
         let suffix: String
@@ -41,16 +41,25 @@ struct MainChatView: View {
         }
 
         let dateString = formatter.string(from: date)
-        return dateString.replacingOccurrences(of: "<<suffix>>", with: suffix)
+        let dayString = String(day)
+        let replaced = dateString.replacingOccurrences(of: dayString, with: dayString + suffix)
+        return replaced
     }
 
     var body: some View {
         ZStack {
             Color(.systemGroupedBackground).ignoresSafeArea()
             NavigationStack {
-
                 ScrollView {
-                    if chatHistoryVM.chatSessions.isEmpty {
+                    if chatHistoryVM.isLoading {
+                        VStack {
+                            Spacer(minLength: 120)
+                            ProgressView("Loading chats...")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                        }
+                    } else if chatHistoryVM.chatSessions.isEmpty {
                         VStack {
                             Spacer(minLength: 120)
                             Text("Tap + to start a new conversation.")
@@ -68,16 +77,22 @@ struct MainChatView: View {
                                     ZStack(alignment: .leading) {
                                         RoundedRectangle(cornerRadius: 12)
                                             .fill(Color(.systemBackground))
-                                            .shadow(color: colorScheme == .dark ? Color.black.opacity(0.4) : Color.clear, radius: 4, x: 0, y: 2)
+                                            .shadow(color: borderColor == nil ? Color.clear : Color.black.opacity(0.4), radius: 4, x: 0, y: 2)
                                         VStack(alignment: .leading, spacing: 4) {
                                             HStack {
                                                 Text(session.title)
                                                     .font(.headline)
                                                     .foregroundColor(.primary)
                                                 Spacer()
-                                                Text(formattedDate(session.createdAt))
-                                                    .font(.caption)
-                                                    .foregroundColor(.secondary)
+                                                if let lastActiveDate = session.lastActiveDate {
+                                                    Text(formattedDate(lastActiveDate))
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                } else {
+                                                    Text("No date")
+                                                        .font(.caption)
+                                                        .foregroundColor(.secondary)
+                                                }
                                             }
                                             if let lastMessage = session.messages.last {
                                                 Text(lastMessage.content)
@@ -112,17 +127,28 @@ struct MainChatView: View {
                         .padding(.horizontal, 16)
                     }
                 }
+                .refreshable {
+                    _ = try? await TokenManager.shared.getValidToken()
+                    chatHistoryVM.loadChatSessions()
+                }
                 .background(Color.clear)
                 .navigationTitle("Chats")
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Edit") {
-                            // Edit action
+                .onAppear {
+                    if chatHistoryVM.chatSessions.isEmpty && !chatHistoryVM.isLoading {  // Refresh the chats only once (when the MainChatView first appears)
+                        Task {
+                            _ = try? await TokenManager.shared.getValidToken()
                         }
+                        chatHistoryVM.loadChatSessions()
                     }
+                }
+                // Silent refresh when a chat is updated (no loading indicator)
+                .onReceive(NotificationCenter.default.publisher(for: .chatUpdated)) { _ in
+                    chatHistoryVM.loadChatSessionsSilent()
+                }
+                .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: {
-                            let newSession = chatHistoryVM.createNewChat()
+                            let newSession = ChatSession()
                             navigateToChat = newSession
                         }) {
                             ZStack {
@@ -143,6 +169,10 @@ struct MainChatView: View {
             }
         }
     }
+}
+
+extension Notification.Name {
+    static let chatUpdated = Notification.Name("chatUpdated")
 }
 
 #Preview {
