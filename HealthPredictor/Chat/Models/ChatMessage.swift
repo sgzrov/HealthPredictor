@@ -23,31 +23,35 @@ struct ChatMessage: Identifiable, Equatable, Codable {
     var content: String
     var state: MessageState
     let role: MessageSender
-    let timestamp: Date
 
-    init(id: UUID = UUID(), content: String, role: MessageSender, timestamp: Date = Date(), state: MessageState = .complete) {
+    init(id: UUID = UUID(), content: String, role: MessageSender, state: MessageState = .complete) {
         self.id = id
         self.content = content
         self.state = state
         self.role = role
-        self.timestamp = timestamp
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        self.id = (try? container.decode(UUID.self, forKey: .id)) ?? UUID()
+        // Convert the Int ID sent from the backend into a UUID
+        let intId = try container.decode(Int.self, forKey: .id)
+        let uuidString = "\(String(format: "%08d", intId))-0000-0000-0000-000000000000"
+        guard let uuid = UUID(uuidString: uuidString) else {
+            throw DecodingError.dataCorruptedError(forKey: .id, in: container, debugDescription: "Failed to convert integer ID \(intId) to UUID")
+        }
+        print("[CHAT_MESSAGE_ID] Converted backend ID \(intId) to UUID: \(uuid)")
+
+        self.id = uuid
         self.content = try container.decode(String.self, forKey: .content)
         self.state = (try? container.decode(MessageState.self, forKey: .state)) ?? .complete
         self.role = (try? container.decode(MessageSender.self, forKey: .role)) ?? .assistant
-        self.timestamp = (try? container.decode(Date.self, forKey: .timestamp)) ?? Date()
     }
 
     static func == (lhs: ChatMessage, rhs: ChatMessage) -> Bool {
         lhs.id == rhs.id &&
         lhs.content == rhs.content &&
         lhs.role == rhs.role &&
-        lhs.timestamp == rhs.timestamp &&
         lhs.state == rhs.state
     }
 }
