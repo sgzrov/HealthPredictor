@@ -39,17 +39,17 @@ struct StudiesListView_Previews: PreviewProvider {
         let sampleStudies = [
             Study(
                 id: UUID(),
-                title: "Sample Study 1",
-                summary: "This is a summary for study 1.",
-                personalizedInsight: "Personalized insight 1.",
-                sourceURL: URL(string: "https://example.com/1")!
+                title: "How can high heart rates increase the risk of cancer?",
+                summary: "This is a sample summary.",
+                outcome: "This is a sample outcome.",
+                importDate: Date()
             ),
             Study(
                 id: UUID(),
-                title: "Sample Study 2",
-                summary: "This is a summary for study 2.",
-                personalizedInsight: "Personalized insight 2.",
-                sourceURL: URL(string: "https://example.com/2")!
+                title: "How can a calorie deficit affect brain fog?",
+                summary: "This is a sample summary.",
+                outcome: "this is a sample outcome.",
+                importDate: Date()
             )
         ]
         StudiesListView(studies: sampleStudies)
