@@ -21,22 +21,14 @@ enum NetworkError: Error {
     case authenticationFailed
 }
 
-extension Data {
-    mutating func append(_ string: String) {
-        append(Data(string.utf8))
-    }
-}
-
 enum MultipartField {
     case file(name: String, filename: String, contentType: String, data: Data)
     case text(name: String, value: String)
 }
 
 struct MultipartFormBuilder {
-
     static func buildMultipartForm(fields: [MultipartField], boundary: String) -> Data {
         var body = Data()
-
         for field in fields {
             appendMultipartField(to: &body, field: field, boundary: boundary)
         }
@@ -53,7 +45,6 @@ struct MultipartFormBuilder {
             body.append("Content-Type: \(contentType)\r\n\r\n")
             body.append(data)
             body.append("\r\n")
-
         case .text(let name, let value):
             body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n")
             body.append("\(value)\r\n")
@@ -80,6 +71,7 @@ struct FileUtilities {
         } else {
             print("Could not access file.")
         }
+
         defer {
             if didStartAccessing {
                 fileURL.stopAccessingSecurityScopedResource()
@@ -88,5 +80,11 @@ struct FileUtilities {
         }
 
         return try Data(contentsOf: fileURL)
+    }
+}
+
+extension Data {
+    mutating func append(_ string: String) {
+        append(Data(string.utf8))
     }
 }
