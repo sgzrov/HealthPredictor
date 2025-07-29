@@ -12,53 +12,116 @@ import SwiftUI
 class ChatHistoryViewModel: ObservableObject {
 
     @Published var chatSessions: [ChatSession] = []
-    @Published var selectedSession: ChatSession?
-    @Published var searchText: String = ""
+    @Published var isLoading: Bool = false
 
-    var userToken: String
+    private let userToken: String
 
     init(userToken: String) {
         self.userToken = userToken
-        loadChatSessions()
     }
 
-    func createNewChat() -> ChatSession {
-        let newSession = ChatSession()
-        chatSessions.insert(newSession, at: 0)
-        return newSession
+    func appendSessionIfNeeded(_ session: ChatSession) {
+        if !chatSessions.contains(where: { $0.id == session.id }) {
+            chatSessions.insert(session, at: 0)
+        }
     }
 
     func loadChatSessions() {
-        BackendService.shared.fetchChatSessions(userToken: userToken) { ids in
-            self.chatSessions = []
-            for id in ids {
-                BackendService.shared.fetchChatHistory(conversationId: id, userToken: self.userToken) { messages in
-                    let session = ChatSession(conversationId: id, messages: messages)
-                    self.chatSessions.append(session)
+        if isLoading {
+            print("[DEBUG] ChatHistoryViewModel: Already loading, skipping request")
+            return
+        }
+        print("[DEBUG] ChatHistoryViewModel: Starting to load chat sessions at \(Date())")
+        isLoading = true
+
+        // Get a valid token from TokenManager
+        Task {
+            do {
+                let token = try await TokenManager.shared.getValidToken()
+                print("[DEBUG] ChatHistoryViewModel: Got token from TokenManager, length: \(token.count)")
+
+                BackendService.shared.fetchChatSessions(userToken: token) { sessionTuples in
+                    print("[DEBUG] ChatHistoryViewModel: Received \(sessionTuples.count) session tuples at \(Date())")
+
+                    if sessionTuples.isEmpty {
+                        print("[DEBUG] ChatHistoryViewModel: No sessions found")
+                        self.chatSessions = []
+                        self.isLoading = false
+                        return
+                    }
+
+                    let group = DispatchGroup()
+                    var tempSessions: [ChatSession] = []
+
+                    for (conversationId, lastActiveDate) in sessionTuples {
+                        group.enter()
+                        print("[DEBUG] ChatHistoryViewModel: Fetching history for conversation \(conversationId), lastActiveDate = \(lastActiveDate?.description ?? "nil")")
+                        BackendService.shared.fetchChatHistory(conversationId: conversationId, userToken: token) { messages in
+                            let session = ChatSession(conversationId: conversationId, messages: messages, lastActiveDate: lastActiveDate)
+                            tempSessions.append(session)
+                            print("[DEBUG] ChatHistoryViewModel: Added session with \(messages.count) messages for \(conversationId), lastActiveDate = \(lastActiveDate?.description ?? "nil")")
+                            group.leave()
+                        }
+                    }
+
+                    group.notify(queue: .main) {
+                        // All chat histories have been loaded
+                        // Filter out sessions with no messages (empty conversations)
+                        let validSessions = tempSessions.filter { !$0.messages.isEmpty }
+                        self.chatSessions = validSessions.sorted { $0.lastActiveDate ?? Date.distantPast > $1.lastActiveDate ?? Date.distantPast }
+                        print("[DEBUG] ChatHistoryViewModel: Completed loading \(self.chatSessions.count) valid chat sessions (filtered from \(tempSessions.count) total) at \(Date())")
+                        self.isLoading = false
+                    }
                 }
+            } catch {
+                print("[DEBUG] ChatHistoryViewModel: Failed to get fresh token: \(error)")
+                self.isLoading = false
             }
         }
     }
 
-    func updateChatSession(_ session: ChatSession) {
-        if let index = chatSessions.firstIndex(where: { $0.id == session.id }) {
-            chatSessions[index] = session
-        }
-    }
+    func loadChatSessionsSilent() {
+        // Silent refresh without showing loading state
+        print("[DEBUG] ChatHistoryViewModel: Starting silent refresh at \(Date())")
 
-    func deleteChatSession(_ session: ChatSession) {
-        chatSessions.removeAll { $0.id == session.id }
-    }
+        // Get a valid token from TokenManager
+        Task {
+            do {
+                let token = try await TokenManager.shared.getValidToken()
+                print("[DEBUG] ChatHistoryViewModel: Got token for silent refresh, length: \(token.count)")
 
-    var filteredSessions: [ChatSession] {
-        if searchText.isEmpty {
-            return chatSessions
-        } else {
-            return chatSessions.filter { session in
-                session.title.localizedCaseInsensitiveContains(searchText) ||
-                session.messages.contains { message in
-                    message.content.localizedCaseInsensitiveContains(searchText)
+                BackendService.shared.fetchChatSessions(userToken: token) { sessionTuples in
+                    print("[DEBUG] ChatHistoryViewModel: Silent refresh received \(sessionTuples.count) session tuples")
+
+                    if sessionTuples.isEmpty {
+                        print("[DEBUG] ChatHistoryViewModel: Silent refresh - no sessions found")
+                        DispatchQueue.main.async {
+                            self.chatSessions = []
+                        }
+                        return
+                    }
+
+                    let group = DispatchGroup()
+                    var tempSessions: [ChatSession] = []
+
+                    for (conversationId, lastActiveDate) in sessionTuples {
+                        group.enter()
+                        BackendService.shared.fetchChatHistory(conversationId: conversationId, userToken: token) { messages in
+                            let session = ChatSession(conversationId: conversationId, messages: messages, lastActiveDate: lastActiveDate)
+                            tempSessions.append(session)
+                            group.leave()
+                        }
+                    }
+
+                    group.notify(queue: .main) {
+                        // All chat histories have been loaded silently
+                        let validSessions = tempSessions.filter { !$0.messages.isEmpty }
+                        self.chatSessions = validSessions.sorted { $0.lastActiveDate ?? Date.distantPast > $1.lastActiveDate ?? Date.distantPast }
+                        print("[DEBUG] ChatHistoryViewModel: Silent refresh completed with \(self.chatSessions.count) sessions")
+                    }
                 }
+            } catch {
+                print("[DEBUG] ChatHistoryViewModel: Silent refresh failed: \(error)")
             }
         }
     }
