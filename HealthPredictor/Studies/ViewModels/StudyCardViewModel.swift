@@ -40,8 +40,4 @@ class StudyCardViewModel: ObservableObject {
     var title: String {
         study.title
     }
-
-    var sourceURL: URL {
-        study.sourceURL
-    }
 }
