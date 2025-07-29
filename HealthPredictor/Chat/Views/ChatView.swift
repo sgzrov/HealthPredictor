@@ -9,22 +9,25 @@ import SwiftUI
 
 struct ChatView: View {
 
-    @ObservedObject var session: ChatSession
-
     @StateObject private var messageVM: MessageViewModel
 
     @State private var hasSentFirstMessage = false
 
+    private var session: ChatSession
+
+    private let userToken: String
+
     var newSessionHandler: ((ChatSession) -> Void)?
 
-    let userToken: String
-
+    // For previous chats
     init(session: ChatSession, userToken: String) {
         self.session = session
         self.userToken = userToken
         self._messageVM = StateObject(wrappedValue: MessageViewModel(session: session, userToken: userToken))
+        self.newSessionHandler = nil
     }
 
+    // For new chats
     init(userToken: String, newSessionHandler: @escaping (ChatSession) -> Void) {
         let newSession = ChatSession()
         self.session = newSession
@@ -35,7 +38,6 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 12) {
@@ -49,7 +51,10 @@ struct ChatView: View {
                     withAnimation {
                         proxy.scrollTo(newValue.last?.id, anchor: .bottom)
                     }
-                    // Removed newSessionHandler call to prevent duplicate assistant responses and session insertions
+                    if !hasSentFirstMessage && oldValue.isEmpty && !newValue.isEmpty {
+                        hasSentFirstMessage = true
+                        newSessionHandler?(session)
+                    }
                 }
             }
 
@@ -64,9 +69,7 @@ struct ChatView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle(session.title)
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            messageVM.refreshMessages()
-        }
+
     }
 }
 
