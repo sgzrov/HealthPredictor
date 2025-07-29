@@ -13,29 +13,23 @@ struct MessageBubbleView: View {
 
     var body: some View {
         HStack {
-            if message.sender == .user {
+            if message.role == .user {
                 Spacer()
             }
 
-            VStack(alignment: message.sender == .user ? .trailing : .leading, spacing: 4) {
+            VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
                 HStack(alignment: .top, spacing: 8) {
                     Text(message.content.isEmpty && message.state == .streaming ? "Thinking..." : message.content)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
-                        .background(message.sender == .user ? Color.accentColor : .secondary.opacity(0.3))
-                        .foregroundColor(message.sender == .user ? .white : .primary)
+                        .background(message.role == .user ? Color.accentColor : .secondary.opacity(0.3))
+                        .foregroundColor(message.role == .user ? .white : .primary)
                         .cornerRadius(20)
 
                 }
-
-                HStack(spacing: 10) {
-                    Text(message.timestamp, style: .time)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
             }
 
-            if message.sender == .assistant {
+            if message.role == .assistant {
                 Spacer()
             }
         }
@@ -50,23 +44,13 @@ struct MessageBubbleView: View {
     VStack {
         MessageBubbleView(message: ChatMessage(
             content: "Hello! How can I help you with your health today?",
-            sender: .assistant,
+            role: .assistant,
             state: .complete
         ))
         MessageBubbleView(message: ChatMessage(
             content: "Tell me more about my heart rate!",
-            sender: .user,
+            role: .user,
             state: .complete
-        ))
-        MessageBubbleView(message: ChatMessage(
-            content: "I'm analyzing your health data...",
-            sender: .assistant,
-            state: .streaming
-        ))
-        MessageBubbleView(message: ChatMessage(
-            content: "Sorry, I encountered an error processing your request.",
-            sender: .assistant,
-            state: .error
         ))
     }
 }
