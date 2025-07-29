@@ -37,12 +37,6 @@ struct StudyCardView: View {
                     .foregroundColor(.secondary)
                     .italic(viewModel.isSummaryEmpty)
                     .lineLimit(1)
-
-                HStack(alignment: .center, spacing: 8) {
-                    Text("Source:")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
             }
             .padding(16)
         }
@@ -63,10 +57,10 @@ struct StudyCardView: View {
     let study = Study(
         title: "Sample Study Title",
         summary: "This is a sample study summary.",
-        personalizedInsight: "This is a sample personalized insight.",
-        sourceURL: URL(string: "https://example.com")!
+        outcome: "This is a sample outcome.",
+        importDate: Date()
     )
 
     let viewModel = StudyCardViewModel(study: study)
-    return StudyCardView(viewModel: viewModel)
+    StudyCardView(viewModel: viewModel)
 }
