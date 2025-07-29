@@ -10,7 +10,7 @@ import SwiftUI
 struct StudiesHomeView: View {
 
     @StateObject private var importVM = TagExtractionViewModel()
-    @StateObject private var studiesVM = StudyViewModel()
+    @StateObject private var studiesVM: StudyViewModel
 
     @State private var showSheet: Bool = false
     @State private var showFileImporter: Bool = false
@@ -18,14 +18,35 @@ struct StudiesHomeView: View {
     @State private var currentStudy: Study?
     @State private var navigateToStudy: Study?
 
+    init(userToken: String) {
+        _studiesVM = StateObject(wrappedValue: StudyViewModel(userToken: userToken))
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(.systemGroupedBackground).ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 20) {
-                    ScrollView {
-                        StudiesListView(studies: studiesVM.allStudies)
+                ScrollView {
+                    if studiesVM.isLoading {
+                        VStack {
+                            Spacer(minLength: 120)
+                            ProgressView("Loading studies...")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                        }
+                    } else if studiesVM.studies.isEmpty {
+                        VStack {
+                            Spacer(minLength: 120)
+                            Text("Tap + to import your first study")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                            Spacer()
+                        }
+                    } else {
+                        StudiesListView(studies: studiesVM.studies)
                     }
                 }
             }
@@ -47,7 +68,7 @@ struct StudiesHomeView: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             navigateToStudy = study
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                                studiesVM.allStudies.insert(study, at: 0)
+                                studiesVM.createStudy(title: study.title, summary: study.summary, outcome: study.outcome)
                             }
                         }
                     }
@@ -76,10 +97,13 @@ struct StudiesHomeView: View {
                 }
             }
             .navigationTitle("Studies")
+            .refreshable {
+                studiesVM.loadStudies()
+            }
         }
     }
 }
 
 #Preview {
-    StudiesHomeView()
+    StudiesHomeView(userToken: "preview-token")
 }
