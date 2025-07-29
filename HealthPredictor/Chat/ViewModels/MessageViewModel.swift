@@ -11,37 +11,30 @@ import SwiftUI
 @MainActor
 class MessageViewModel: ObservableObject {
 
-    @Published var messages: [ChatMessage]
-    @Published var inputMessage: String = ""
     @Published var isLoading: Bool = false
+    @Published var inputMessage: String = ""
+    @Published var messages: [ChatMessage]
 
-    private let session: ChatSession
+    private var session: ChatSession
+
     private let backendService = BackendService.shared
     private let healthFileCacheService = UserFileCacheService.shared
+
     private let userToken: String
+
+    private static let streamingDelay: UInt64 = 4_000_000
 
     init(session: ChatSession, userToken: String) {
         self.session = session
         self.userToken = userToken
-        self.messages = session.messages // Preload messages from session
-    }
-
-    private static let streamingDelay: UInt64 = 4_000_000 // For slowed streaming (better UI)
-
-    func refreshMessages() {
-        print("Refreshing messages for session: \(session.conversationId)")
-        backendService.fetchChatHistory(conversationId: session.conversationId, userToken: userToken) { messages in
-            print("Fetched \(messages.count) messages from backend for session: \(self.session.conversationId)")
-            self.messages = messages
-            self.session.messages = messages
-        }
+        self.messages = session.messages
     }
 
     func sendMessage() {
         guard !inputMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         guard !isLoading else { return }
 
-        let userMessage = ChatMessage(content: inputMessage, sender: .user)
+        let userMessage = ChatMessage(content: inputMessage, role: .user)
         messages.append(userMessage)
         session.messages = messages
 
@@ -51,7 +44,7 @@ class MessageViewModel: ObservableObject {
 
         Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
-            let thinkingMessage = ChatMessage(content: "", sender: .assistant, state: .streaming)
+            let thinkingMessage = ChatMessage(content: "", role: .assistant, state: .streaming)
             messages.append(thinkingMessage)
             session.messages = messages
 
@@ -59,12 +52,12 @@ class MessageViewModel: ObservableObject {
         }
     }
 
-        private func processMessage(userInput: String) async {
+    private func processMessage(userInput: String) async {
         do {
-            let needsCodeInterpreter = try await checkIfCodeInterpreterNeeded(message: userInput)
+            let needsCodeInterpreter = try await backendService.shouldUseCodeInterpreter(userInput: userInput)
             await sendStreamingMessage(userInput: userInput, needsCodeInterpreter: needsCodeInterpreter)
         } catch {
-            addErrorMessage(error.localizedDescription)
+            print("Error: \(error.localizedDescription)")
         }
         isLoading = false
     }
@@ -74,8 +67,8 @@ class MessageViewModel: ObservableObject {
             let stream: AsyncStream<String>
 
             if needsCodeInterpreter {
-                let csvPath = try await generateCSVAsync()
-                stream = try await backendService.analyzeHealthData(
+                let csvPath = try await healthFileCacheService.getCachedHealthFile()
+                stream = try await backendService.chatWithCI(
                     csvFilePath: csvPath,
                     userInput: userInput,
                     conversationId: session.conversationId
@@ -87,74 +80,44 @@ class MessageViewModel: ObservableObject {
                 )
             }
 
-            await handleStreamingResponse(stream: stream)
-        } catch {
-            let errorType = needsCodeInterpreter ? "Chat" : "Simple chat"
-            addErrorMessage("\(errorType) streaming error: \(error.localizedDescription)")
-        }
-    }
+            let messageIndex = messages.count - 1
+            var isFirstChunk = true
+            var fullContent = ""
 
-    private func handleStreamingResponse(stream: AsyncStream<String>) async {
-        let messageIndex = messages.count - 1
-        var fullContent = ""
+            for await chunk in stream {
+                if isFirstChunk {
+                    if let id = extractConversationId(from: chunk) {
+                        session.conversationId = id
+                    }
+                    isFirstChunk = false
+                }
 
-        for await chunk in stream {
-            if chunk.hasPrefix("Error: ") {
-                messages[messageIndex].content = chunk
-                messages[messageIndex].state = .error
-                return
+                if chunk.hasPrefix("Error: ") {
+                    break
+                }
+
+                fullContent += chunk
+                messages[messageIndex].content = fullContent
+                session.messages = messages
+                try? await Task.sleep(nanoseconds: Self.streamingDelay)
             }
 
-            fullContent += chunk
-            messages[messageIndex].content = fullContent
+            messages[messageIndex].state = .complete
             session.messages = messages
 
-            try? await Task.sleep(nanoseconds: Self.streamingDelay)
-        }
-        messages[messageIndex].state = .complete
-        session.messages = messages
-
-        // After streaming is done, reload from backend to avoid duplicates
-        await MainActor.run {
-            self.refreshMessages()
+            // Notify that chat has been updated
+            NotificationCenter.default.post(name: .chatUpdated, object: nil)
+        } catch {
+            print("Error: \(needsCodeInterpreter ? "Chat" : "Simple chat") streaming error: \(error.localizedDescription)")
         }
     }
 
-    private func addErrorMessage(_ debugInfo: String) {
-        let errorMessage = ChatMessage(
-            content: "Sorry, I'm experiencing technical difficulties right now. Please try again later.",
-            sender: .assistant,
-            state: .error
-        )
-        messages.append(errorMessage)
-        session.messages = messages
-        print("Error: \(debugInfo)")
-    }
-
-    private func checkIfCodeInterpreterNeeded(message: String) async throws -> Bool {
-        let result = try await backendService.shouldUseCodeInterpreter(userInput: message)
-        return result == "yes"
-    }
-
-    private func generateCSVAsync() async throws -> String {
-        return try await healthFileCacheService.getCachedHealthFile()
-    }
-
-    func clearMessages() {
-        messages.removeAll()
-    }
-
-    func retryLastMessage() {
-        guard let lastUserMessage = messages.last(where: { $0.sender == .user }) else { return }
-        if let lastUserIndex = messages.lastIndex(where: { $0.sender == .user }) {
-            messages = Array(messages.prefix(through: lastUserIndex))
+    private func extractConversationId(from chunk: String) -> String? {
+        if let data = chunk.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let id = json["conversation_id"] as? String {
+            return id
         }
-
-        isLoading = true
-
-        Task {
-            await processMessage(userInput: lastUserMessage.content)
-            refreshMessages()
-        }
+        return nil
     }
 }
