@@ -44,7 +44,7 @@ class FileUploadToBackendService: FileUploadToBackendServiceProtocol {
 
         print("🔍 UPLOAD: Creating authenticated request")
         var request = try await authService.authenticatedRequest(
-            for: "/upload-health-data/",
+            for: "/files/upload-health-data/",
             method: "POST",
             body: body
         )
