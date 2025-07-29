@@ -7,50 +7,50 @@
 
 import Foundation
 
-class ChatSession: Identifiable, Hashable, Codable, ObservableObject {
+struct ChatSession: Identifiable, Hashable, Codable {
+    var conversationId: String?
+    var title: String
+    var messages: [ChatMessage]
+    var lastActiveDate: Date?
 
-    @Published var title: String
-    @Published var messages: [ChatMessage]
-
-    let id: UUID
-    let createdAt: Date
-    let conversationId: String
-
-    init(id: UUID = UUID(), conversationId: String = UUID().uuidString, title: String = "New Chat", createdAt: Date = Date(), messages: [ChatMessage] = []) {
-        self.id = id
+    init(conversationId: String? = nil, title: String = "New Chat", messages: [ChatMessage] = [], lastActiveDate: Date? = nil) {
         self.conversationId = conversationId
         self.title = title
-        self.createdAt = createdAt
         self.messages = messages
-    }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-
-    static func == (lhs: ChatSession, rhs: ChatSession) -> Bool {
-        lhs.id == rhs.id && lhs.conversationId == rhs.conversationId
+        self.lastActiveDate = lastActiveDate
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, conversationId, title, createdAt, messages
+        case conversationId = "conversation_id"
+        case lastActiveDate = "last_active_date"
     }
 
-    required init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        conversationId = try container.decode(String.self, forKey: .conversationId)
-        title = try container.decode(String.self, forKey: .title)
-        createdAt = try container.decode(Date.self, forKey: .createdAt)
-        messages = try container.decode([ChatMessage].self, forKey: .messages)
+
+        self.conversationId = try? container.decodeIfPresent(String.self, forKey: .conversationId)
+        self.title = "New Chat"
+        self.messages = []
+        self.lastActiveDate = try? container.decodeIfPresent(Date.self, forKey: .lastActiveDate)
     }
 
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(conversationId, forKey: .conversationId)
-        try container.encode(title, forKey: .title)
-        try container.encode(createdAt, forKey: .createdAt)
-        try container.encode(messages, forKey: .messages)
+    // - For existing sessions: returns conversation_id from backend
+    // - For new local sessions (that do not have at least a single message from the user): returns temporary UUID until backend assigns conversation_id
+    var id: String {
+        if let conversationId = conversationId {
+            return conversationId
+        } else {
+            let tempId = UUID().uuidString
+            print("[CHAT_SESSION_ID] ChatSession has no conversationId, id should only be created for new sessions: \(tempId)")
+            return tempId
+        }
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(conversationId)
+    }
+
+    static func == (lhs: ChatSession, rhs: ChatSession) -> Bool {
+        lhs.conversationId == rhs.conversationId
     }
 }
