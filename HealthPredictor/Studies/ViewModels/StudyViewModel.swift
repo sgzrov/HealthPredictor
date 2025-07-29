@@ -8,33 +8,46 @@
 import Foundation
 import SwiftUI
 
-enum StudyCategory {
-    case recommended
-    case all
-}
-
 @MainActor
 class StudyViewModel: ObservableObject {
 
-    @Published var selectedCategory: StudyCategory = .recommended
-    @Published var recommendedStudies: [Study] = []
-    @Published var allStudies: [Study] = []
+    @Published var studies: [Study] = []
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String = ""
 
-    func updateOutcome(for id: UUID, outcome: String) {
-        if let index = allStudies.firstIndex(where: { $0.id == id }) {
-            allStudies[index].personalizedInsight = outcome
-        }
-        if let index = recommendedStudies.firstIndex(where: { $0.id == id }) {
-            recommendedStudies[index].personalizedInsight = outcome
+    private let userToken: String
+    private let backendService = BackendService.shared
+
+    init(userToken: String) {
+        self.userToken = userToken
+        loadStudies()
+    }
+
+    func loadStudies() {
+        isLoading = true
+        errorMessage = ""
+
+        backendService.fetchStudies(userToken: userToken) { [weak self] studies in
+            DispatchQueue.main.async {
+                self?.studies = studies
+                self?.isLoading = false
+            }
         }
     }
 
-    func updateSummary(for id: UUID, summary: String) {
-        if let index = allStudies.firstIndex(where: { $0.id == id }) {
-            allStudies[index].summary = summary
-        }
-        if let index = recommendedStudies.firstIndex(where: { $0.id == id }) {
-            recommendedStudies[index].summary = summary
+    func createStudy(title: String, summary: String = "", outcome: String = "") {
+        isLoading = true
+        errorMessage = ""
+
+        backendService.createStudy(userToken: userToken, title: title, summary: summary, outcome: outcome) { [weak self] study in
+            DispatchQueue.main.async {
+                if let study = study {
+                    self?.studies.insert(study, at: 0)
+                } else {
+                    self?.errorMessage = "Failed to create study"
+                }
+                self?.isLoading = false
+            }
         }
     }
 }
