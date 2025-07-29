@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
-class S3StorageService:
+class S3Storage:
     def __init__(self):
         self.access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
         self.secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")

@@ -34,7 +34,7 @@ class CodeInterpreterSelector:
                         if text is not None:
                             answer = text.strip().lower()
                             logger.info(f"Code interpreter selection response: {answer}")
-                            if "yes" in answer:
+                            if "yes" in answer.lower():
                                 return "yes"
             return "no"
 

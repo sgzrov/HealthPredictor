@@ -3,7 +3,7 @@ import openai
 from typing import BinaryIO, Optional, List, Any, Generator
 from dataclasses import dataclass
 
-from Backend.Database.chat_history import add_chat_message, get_chat_history, upsert_chat_message
+from Backend.Database.chat_repository import create_chat_message, get_chat_history
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -26,29 +26,27 @@ class ChatAgent:
             logger.error(f"Error reading prompt file: {e}")
             raise
 
-    def _append_user_message(self, conversation_id: str, user_id: str, user_message: str) -> None:
+    def _append_user_message(self, conversation_id: str, user_id: str, user_message: str, session) -> None:
         if not conversation_id or not user_message.strip():
             return
-        add_chat_message(conversation_id, user_id, "user", user_message.strip())
+        if session is None:
+            raise ValueError("A database session must be provided.")
+        create_chat_message(session, conversation_id, user_id, "user", user_message.strip())
         logger.info(f"[CONV] User message appended to DB ({conversation_id}, {user_id}): {user_message.strip()}")
 
-    def _append_assistant_response(self, conversation_id: str, user_id: str, full_response: str) -> None:
+    def _append_assistant_response(self, conversation_id: str, user_id: str, full_response: str, session) -> None:
         if not conversation_id or not full_response.strip():
             return
-        upsert_chat_message(conversation_id, user_id, "assistant", full_response.strip())
-        logger.info(f"[CONV] Assistant response upserted to DB ({conversation_id}, {user_id}): {full_response.strip()}")
+        if session is None:
+            raise ValueError("A database session must be provided to ChatAgent methods.")
+        create_chat_message(session, conversation_id, user_id, "assistant", full_response.strip())
+        logger.info(f"[CONV] Assistant response appended to DB ({conversation_id}, {user_id}): {full_response.strip()}")
 
-    def _append_partial_assistant_response(self, conversation_id: str, user_id: str, partial_response: str) -> None:
-        if not conversation_id or not partial_response.strip():
-            return
-        upsert_chat_message(conversation_id, user_id, "assistant", partial_response.strip())
-        logger.info(f"[CONV] Partial assistant response upserted to DB ({conversation_id}, {user_id}): {partial_response.strip()}")
-
-    def _get_history_context(self, conversation_id: Optional[str], user_id: Optional[str]) -> str:
+    def _get_history_context(self, conversation_id: Optional[str], user_id: Optional[str], session) -> str:
         if not conversation_id or not user_id:
             return ""
 
-        db_history = get_chat_history(conversation_id, user_id)
+        db_history = get_chat_history(session, conversation_id, user_id)
         conversation_context = ""
         for message in db_history:
             role = "User" if message.role == "user" else "Assistant"
@@ -56,8 +54,8 @@ class ChatAgent:
         logger.info(f"[CONV] Context for LLM ({conversation_id}, {user_id}):\n{conversation_context.strip()}")
         return conversation_context.strip()
 
-    def get_conversation_history(self, conversation_id: str) -> List[Message]:
-        db_history = get_chat_history(conversation_id)
+    def get_conversation_history(self, conversation_id: str, user_id: str, session) -> List[Message]:
+        db_history = get_chat_history(session, conversation_id, user_id)
         messages = []
         for m in db_history:
             msg = Message(role = m.role, content = m.content)
@@ -65,8 +63,8 @@ class ChatAgent:
         return messages
 
     def simple_chat(self, user_input: str, user_id: str, prompt: Optional[str] = None,
-                    conversation_id: Optional[str] = None) -> Generator[Any, None, None]:
-        conversation_context = self._get_history_context(conversation_id, user_id)
+                    conversation_id: Optional[str] = None, session = None) -> Generator[Any, None, None]:
+        conversation_context = self._get_history_context(conversation_id, user_id, session)
         instructions = prompt if prompt is not None else self.prompt
 
         try:
@@ -86,8 +84,8 @@ class ChatAgent:
 
     def analyze_health_data(self, file_obj: BinaryIO, user_input: str, user_id: str,
                           prompt: Optional[str] = None, conversation_id: Optional[str] = None,
-                          filename: str = "user_health_data.csv") -> Generator[Any, None, None]:
-        conversation_context = self._get_history_context(conversation_id, user_id)
+                          filename: str = "user_health_data.csv", session = None) -> Generator[Any, None, None]:
+        conversation_context = self._get_history_context(conversation_id, user_id, session)
         instructions = prompt if prompt is not None else self.prompt
 
         try:
