@@ -19,18 +19,27 @@ struct MainTabView: View {
 
     var body: some View {
         TabView {
-            StudiesHomeView()
-                .tabItem {
-                    Image(systemName: "list.bullet.rectangle")
-                    Text("Studies")
-                }
             if !userToken.isEmpty {
-            MainChatView(userToken: userToken)
+                StudiesHomeView(userToken: userToken)
+                    .tabItem {
+                        Image(systemName: "list.bullet.rectangle")
+                        Text("Studies")
+                    }
+                MainChatView(userToken: userToken)
                     .tabItem {
                         Image(systemName: "message")
                         Text("Chat")
                     }
             } else {
+                VStack {
+                    ProgressView()
+                    Text("Signing in...")
+                        .foregroundColor(.secondary)
+                }
+                .tabItem {
+                    Image(systemName: "list.bullet.rectangle")
+                    Text("Studies")
+                }
                 VStack {
                     ProgressView()
                     Text("Signing in...")
@@ -45,7 +54,8 @@ struct MainTabView: View {
                 userToken = ""
                 userId = ""
                 isSignedIn = false
-                print("[DEBUG] Signed out, cleared userToken and userId")
+                TokenManager.shared.clearCachedToken()
+                print("[DEBUG] Signed out, cleared userToken, userId, and cached token")
             })
                 .tabItem {
                     Image(systemName: "gear")
@@ -63,6 +73,7 @@ struct MainTabView: View {
     }
 
     private func refreshAuthState() async {
+        print("[DEBUG] refreshAuthState called at \(Date())")
         guard let session = clerk.session else {
             print("[DEBUG] No Clerk session, user not signed in")
             userToken = ""
@@ -70,12 +81,13 @@ struct MainTabView: View {
             isSignedIn = false
             return
         }
+        print("[DEBUG] Clerk session found, user ID: \(session.user?.id ?? "nil")")
         do {
-            let token = try await AuthService.getAuthToken()
+            let token = try await TokenManager.shared.getValidToken()
             userToken = token
             userId = session.user?.id ?? ""
             isSignedIn = true
-            print("[DEBUG] Signed in as userId: \(userId), token: \(userToken.prefix(12))...")
+            print("[DEBUG] Successfully got auth token from TokenManager, length: \(token.count)")
             if !healthDataSetup {
                 print("User authenticated - starting health data collection")
                 UserFileCacheService.shared.setupCSVFile()
@@ -87,8 +99,8 @@ struct MainTabView: View {
                 }
                 healthDataSetup = true
             }
-            } catch {
-                print("Failed to get Clerk JWT: \(error)")
+        } catch {
+            print("[DEBUG] Failed to get Clerk JWT: \(error)")
             userToken = ""
             userId = ""
             isSignedIn = false
