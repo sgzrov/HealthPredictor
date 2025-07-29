@@ -9,7 +9,7 @@ import SwiftUI
 
 struct StudyDetailedView: View {
 
-    @ObservedObject var study: Study
+    let study: Study
 
     var body: some View {
         ScrollView {
@@ -19,7 +19,7 @@ struct StudyDetailedView: View {
                 Text(study.summary)
                 Text("Outcome: ")
                     .font(.headline)
-                Text(study.personalizedInsight)
+                Text(study.outcome)
             }
             .padding()
         }
@@ -28,9 +28,9 @@ struct StudyDetailedView: View {
 
 #Preview {
     StudyDetailedView(study: Study(
-        title: "Sample Study",
-        summary: "This is a sample study summary.",
-        personalizedInsight: "This is a sample personalized insight.",
-        sourceURL: URL(string: "https://example.com")!
+        title: "How can high heart rates increase the risk of cancer?",
+        summary: "This is a sample summary.",
+        outcome: "This is a sample outcome.",
+        importDate: Date()
     ))
 }
