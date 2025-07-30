@@ -1,14 +1,16 @@
-import openai
 import logging
+import openai
 from typing import BinaryIO, Optional, Any, Generator
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.propagate = True
 
 class StudyOutcomeAgent:
     def __init__(self, api_key: str, prompt_path: str, model: str = "gpt-4o-mini") -> None:
         self.api_key = api_key
         self.model = model
-        self.client = openai.OpenAI(api_key=api_key)
+        self.client = openai.OpenAI(api_key = api_key)
 
         try:
             with open(prompt_path, "r", encoding = "utf-8") as f:
@@ -26,7 +28,6 @@ class StudyOutcomeAgent:
                 file = (filename, file_obj, "text/csv"),
                 purpose = "assistants"
             )
-
             response = self.client.responses.create(
                 model = self.model,
                 tools = [
@@ -42,12 +43,11 @@ class StudyOutcomeAgent:
                 input = user_input,
                 stream = True
             )
-
             for chunk in response:
                 yield chunk
         except openai.APIError as e:
             logger.error(f"OpenAI API error: {e}")
             raise
         except Exception as e:
-            logger.error(f"Exception in generate_outcome_stream: {e}")
-            yield f"data: {{'error': '{str(e)}', 'done': True}}\n\n"
+            logger.error(f"Unexpected error in generate_outcome_stream: {e}")
+            raise

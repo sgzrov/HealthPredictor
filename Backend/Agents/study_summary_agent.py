@@ -3,6 +3,8 @@ import logging
 from typing import Optional, Any, Generator
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.propagate = True
 
 class StudySummaryAgent:
     def __init__(self, api_key: str, prompt_path: str, model: str = "gpt-4o-mini") -> None:
@@ -11,7 +13,7 @@ class StudySummaryAgent:
         self.client = openai.OpenAI(api_key = api_key)
 
         try:
-            with open(prompt_path, "r", encoding="utf-8") as f:
+            with open(prompt_path, "r", encoding = "utf-8") as f:
                 self.prompt = f.read()
         except Exception as e:
             logger.error(f"Error reading prompt file: {e}")

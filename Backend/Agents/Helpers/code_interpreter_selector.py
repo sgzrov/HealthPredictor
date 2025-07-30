@@ -3,6 +3,8 @@ import logging
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.propagate = True
 
 class CodeInterpreterSelector:
     def __init__(self, api_key: str, prompt_path: str, model: str = "gpt-4o-mini") -> None:
