@@ -15,4 +15,4 @@ COPY Backend /app/Backend
 EXPOSE 8000
 
 # Start the app with Gunicorn and Uvicorn workers
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "Backend.app:app", "--workers", "4", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "Backend.app:app", "--workers", "4", "--bind", "0.0.0.0:8000", "--timeout", "300"]
