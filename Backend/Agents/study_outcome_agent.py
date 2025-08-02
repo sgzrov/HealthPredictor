@@ -2,6 +2,8 @@ import logging
 import openai
 from typing import BinaryIO, Optional, Any, Generator
 
+from Backend.Database.study_repository import update_study_outcome_by_id
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.propagate = True
@@ -18,6 +20,14 @@ class StudyOutcomeAgent:
         except Exception as e:
             logger.error(f"Error reading prompt file: {e}")
             raise
+
+    # Persist study outcome to the database
+    def _append_study_outcome(self, study_id: str, user_id: str, outcome: str, session) -> None:
+        if not study_id or not outcome.strip():
+            return
+        if session is None:
+            raise ValueError("A database session must be provided.")
+        update_study_outcome_by_id(session, study_id, outcome.strip(), user_id)
 
     def generate_outcome_stream(self, file_obj: BinaryIO, user_input: str, prompt: Optional[str] = None, filename: str = "user_health_data.csv") -> Generator[Any, None, None]:
         instructions = prompt if prompt is not None else self.prompt
