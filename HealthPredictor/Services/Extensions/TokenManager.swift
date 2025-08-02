@@ -12,8 +12,8 @@ class TokenManager {
 
     private var cachedToken: String?
     private var tokenExpiry: Date?
-    private let refreshBuffer: TimeInterval = 10 // 10-second buffer before expiry (tokens are considered valid for 50 seconds)
-    private let clerkTokenExpiry: TimeInterval = 60 // Clerk tokens expire in 60 seconds
+    private let refreshBuffer: TimeInterval = 5 // 5-second buffer before expiry
+    private let clerkTokenExpiry: TimeInterval = 15 // Clerk tokens expire very quickly
 
     private init() {}
 
