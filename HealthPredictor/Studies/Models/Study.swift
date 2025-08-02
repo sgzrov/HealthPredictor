@@ -10,13 +10,15 @@ import SwiftUI
 
 struct Study: Identifiable, Hashable, Codable {
     let id: UUID
+    var studyId: String?
     let title: String
     var summary: String
     var outcome: String
-    let importDate: Date
+    let importDate: Date?
 
-    init(id: UUID = UUID(), title: String, summary: String, outcome: String, importDate: Date) {
+    init(id: UUID = UUID(), studyId: String? = nil, title: String, summary: String, outcome: String, importDate: Date? = nil) {
         self.id = id
+        self.studyId = studyId
         self.title = title
         self.summary = summary
         self.outcome = outcome
@@ -24,7 +26,7 @@ struct Study: Identifiable, Hashable, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, title, summary, outcome
+        case id, studyId = "study_id", title, summary, outcome
         case importDate = "import_date"
     }
 
@@ -40,17 +42,30 @@ struct Study: Identifiable, Hashable, Codable {
         print("[STUDY_ID] Converted backend ID \(intId) to UUID: \(uuid)")
 
         self.id = uuid
+        self.studyId = try container.decode(String.self, forKey: .studyId)
         self.title = try container.decode(String.self, forKey: .title)
         self.summary = try container.decode(String.self, forKey: .summary)
         self.outcome = try container.decode(String.self, forKey: .outcome)
-        self.importDate = try container.decode(Date.self, forKey: .importDate)
+        self.importDate = try container.decodeIfPresent(Date.self, forKey: .importDate)
+    }
+
+    // - For existing studies: returns study_id from backend
+    // - For new local studies: returns temporary UUID until backend assigns study_id
+    var backendId: String {
+        if let studyId = studyId {
+            return studyId
+        } else {
+            let tempId = UUID().uuidString
+            print("[STUDY_ID] Study has no studyId, backendId should only be created for new studies: \(tempId)")
+            return tempId
+        }
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
+        hasher.combine(studyId)
     }
 
     static func == (lhs: Study, rhs: Study) -> Bool {
-        lhs.id == rhs.id
+        lhs.studyId == rhs.studyId
     }
 }
