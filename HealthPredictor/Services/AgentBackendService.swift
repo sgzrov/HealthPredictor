@@ -15,6 +15,14 @@ struct CodeInterpreterResponse: Codable {
     }
 }
 
+struct CreateStudyResponse: Codable {
+    let studyId: String
+
+    enum CodingKeys: String, CodingKey {
+        case studyId = "study_id"
+    }
+}
+
 class AgentBackendService: AgentBackendServiceProtocol {
 
     static let shared = AgentBackendService()
@@ -91,7 +99,7 @@ class AgentBackendService: AgentBackendServiceProtocol {
         return try await sseService.streamSSE(request: request)
     }
 
-    func generateOutcomeStream(csvFilePath: String, userInput: String) async throws -> AsyncStream<String> {
+    func generateOutcomeStream(csvFilePath: String, userInput: String, studyId: String? = nil) async throws -> AsyncStream<String> {
         let fileManager = FileManager.default
         guard fileManager.fileExists(atPath: csvFilePath) else {
             throw NetworkError.fileNotFound
@@ -101,13 +109,18 @@ class AgentBackendService: AgentBackendServiceProtocol {
         }
         let s3Url = try await fileUploadService.uploadHealthDataFile(fileData: csvData)
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "s3_url": s3Url,
             "user_input": userInput
         ]
+
+        if let studyId = studyId {
+            body["study_id"] = studyId
+        }
+
         let jsonData = try JSONSerialization.data(withJSONObject: body)
         var request = try await authService.authenticatedRequest(
-            for: "/generate-outcome/",
+            for: "/generate-study-outcome/",
             method: "POST",
             body: jsonData
         )
@@ -115,14 +128,34 @@ class AgentBackendService: AgentBackendServiceProtocol {
         return try await sseService.streamSSE(request: request)
     }
 
-    func summarizeStudyStream(userInput: String) async throws -> AsyncStream<String> {
-        let jsonData = try JSONSerialization.data(withJSONObject: ["text": userInput])
+    func summarizeStudyStream(userInput: String, studyId: String? = nil) async throws -> AsyncStream<String> {
+        var body: [String: Any] = ["text": userInput]
+
+        if let studyId = studyId {
+            body["study_id"] = studyId
+        }
+
+        let jsonData = try JSONSerialization.data(withJSONObject: body)
         let request = try await authService.authenticatedRequest(
-            for: "/summarize-study/",
+            for: "/generate-study-summary/",
             method: "POST",
             body: jsonData
         )
 
         return try await sseService.streamSSE(request: request)
+    }
+
+    func createStudy() async throws -> String {
+        let jsonData = try JSONSerialization.data(withJSONObject: [:])
+        let request = try await authService.authenticatedRequest(
+            for: "/create-study/",
+            method: "POST",
+            body: jsonData
+        )
+
+        let (data, _) = try await URLSession.shared.data(for: request)
+        let response = try JSONDecoder().decode(CreateStudyResponse.self, from: data)
+
+        return response.studyId
     }
 }
