@@ -9,6 +9,8 @@ import SwiftUI
 
 struct StudiesListView: View {
 
+    @ObservedObject var studiesVM: StudyViewModel
+
     let studies: [Study]
 
     var body: some View {
@@ -24,7 +26,7 @@ struct StudiesListView: View {
                 }
             }
             ForEach(studies) { study in
-                NavigationLink(destination: StudyDetailedView(study: study)) {
+                NavigationLink(destination: StudyDetailedView(studyId: study.studyId ?? "", extractedText: nil, studiesVM: studiesVM)) {
                     StudyCardView(viewModel: StudyCardViewModel(study: study))
                 }
             }
@@ -39,6 +41,7 @@ struct StudiesListView_Previews: PreviewProvider {
         let sampleStudies = [
             Study(
                 id: UUID(),
+                studyId: "sample-study-1",
                 title: "How can high heart rates increase the risk of cancer?",
                 summary: "This is a sample summary.",
                 outcome: "This is a sample outcome.",
@@ -46,13 +49,14 @@ struct StudiesListView_Previews: PreviewProvider {
             ),
             Study(
                 id: UUID(),
+                studyId: "sample-study-2",
                 title: "How can a calorie deficit affect brain fog?",
                 summary: "This is a sample summary.",
                 outcome: "this is a sample outcome.",
                 importDate: Date()
             )
         ]
-        StudiesListView(studies: sampleStudies)
+        StudiesListView(studiesVM: StudyViewModel(userToken: "preview-token"), studies: sampleStudies)
             .previewLayout(.sizeThatFits)
     }
 }
