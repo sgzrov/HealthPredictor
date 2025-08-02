@@ -17,6 +17,9 @@ struct StudiesHomeView: View {
     @State private var selectedFileURL: URL?
     @State private var currentStudy: Study?
     @State private var navigateToStudy: Study?
+    @State private var extractedTextForStudy: String?
+    @State private var streamingStudy: Study?
+    @State private var hasInitiallyLoadedStudies: Bool = false
 
     init(userToken: String) {
         _studiesVM = StateObject(wrappedValue: StudyViewModel(userToken: userToken))
@@ -46,16 +49,17 @@ struct StudiesHomeView: View {
                             Spacer()
                         }
                     } else {
-                        StudiesListView(studies: studiesVM.studies)
+                        StudiesListView(studiesVM: studiesVM, studies: studiesVM.studies)
                     }
                 }
             }
             .navigationDestination(item: $navigateToStudy) { study in
-                StudyDetailedView(study: study)
+                StudyDetailedView(studyId: study.studyId ?? "", extractedText: extractedTextForStudy, studiesVM: studiesVM)
             }
             .sheet(isPresented: $showSheet) {
                 ImportSheetView(
                     importVM: importVM,
+                    studiesVM: studiesVM,
                     showFileImporter: $showFileImporter,
                     selectedFileURL: $selectedFileURL,
                     onDismiss: {
@@ -63,23 +67,18 @@ struct StudiesHomeView: View {
                         selectedFileURL = nil
                         importVM.clearInput()
                     },
-                    onImport: { study in
+                    onImport: { study, extractedText in
                         currentStudy = study
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            navigateToStudy = study
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                                studiesVM.createStudy(title: study.title, summary: study.summary, outcome: study.outcome)
-                            }
-                        }
+                        extractedTextForStudy = extractedText
+                        streamingStudy = study
+                        navigateToStudy = study
+                        showSheet = false
+                        selectedFileURL = nil
+                        importVM.clearInput()
                     }
                 )
             }
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Edit") {
-                        // Edit action
-                    }
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showSheet = true
@@ -97,9 +96,20 @@ struct StudiesHomeView: View {
                 }
             }
             .navigationTitle("Studies")
+            .onAppear {
+                if !hasInitiallyLoadedStudies && !studiesVM.isLoading {
+                    Task {
+                        _ = try? await TokenManager.shared.getValidToken()
+                    }
+                    studiesVM.loadStudies()
+                    hasInitiallyLoadedStudies = true
+                }
+            }
             .refreshable {
+                _ = try? await TokenManager.shared.getValidToken()
                 studiesVM.loadStudies()
             }
+
         }
     }
 }
