@@ -27,23 +27,7 @@ struct MainChatView: View {
     }
 
     private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d yyyy 'at' HH:mm"
-        let calendar = Calendar.current
-        let day = calendar.component(.day, from: date)
-        let suffix: String
-
-        switch day {
-        case 1, 21, 31: suffix = "st"
-        case 2, 22: suffix = "nd"
-        case 3, 23: suffix = "rd"
-        default: suffix = "th"
-        }
-
-        let dateString = formatter.string(from: date)
-        let dayString = String(day)
-        let replaced = dateString.replacingOccurrences(of: dayString, with: dayString + suffix)
-        return replaced
+        return DateUtilities.formatDisplayDate(date)
     }
 
     var body: some View {
