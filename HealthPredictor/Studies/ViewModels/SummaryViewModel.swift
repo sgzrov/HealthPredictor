@@ -18,7 +18,7 @@ class SummaryViewModel: ObservableObject {
 
     private let backendService = BackendService.shared
 
-    func summarizeStudy(text: String) async -> String? {
+    func summarizeStudy(text: String, studyId: String, onUpdate: @escaping (String) -> Void) async -> String? {
         isSummarizing = true
         summarizedText = nil
         errorMessage = ""
@@ -32,7 +32,7 @@ class SummaryViewModel: ObservableObject {
 
             self.extractedText = text
             var fullSummary = ""
-            let stream = try await backendService.summarizeStudy(userInput: text)
+            let stream = try await backendService.summarizeStudy(userInput: text, studyId: studyId)
 
             for await chunk in stream {
                 if chunk.hasPrefix("Error: ") {
@@ -42,6 +42,8 @@ class SummaryViewModel: ObservableObject {
                 }
                 fullSummary += chunk
                 self.summarizedText = fullSummary
+
+                onUpdate(fullSummary)
 
                 try await Task.sleep(nanoseconds: 4_000_000)  // Add a small delay to make streaming visible
             }
@@ -54,5 +56,14 @@ class SummaryViewModel: ObservableObject {
             isSummarizing = false
             return nil
         }
+    }
+
+    private func extractStudyId(from chunk: String) -> String? {
+        if let data = chunk.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let studyId = json["study_id"] as? String {
+            return studyId
+        }
+        return nil
     }
 }

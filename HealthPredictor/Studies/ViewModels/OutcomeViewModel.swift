@@ -18,7 +18,7 @@ class OutcomeViewModel: ObservableObject {
     private let backendService = BackendService.shared
     private let healthFileCacheService = UserFileCacheService.shared
 
-    func generateOutcome(from studyText: String) async -> String? {
+    func generateOutcome(from studyText: String, studyId: String, onUpdate: @escaping (String) -> Void) async -> String? {
         isGenerating = true
         outcomeText = nil
         errorMessage = nil
@@ -31,7 +31,7 @@ class OutcomeViewModel: ObservableObject {
 
             let csvPath = try await generateCSVAsync()
             var fullOutcome = ""
-            let stream = try await backendService.generateOutcome(csvFilePath: csvPath, userInput: studyText)
+            let stream = try await backendService.generateOutcome(csvFilePath: csvPath, userInput: studyText, studyId: studyId)
 
             for await chunk in stream {
                 if chunk.hasPrefix("Error: ") {
@@ -42,6 +42,8 @@ class OutcomeViewModel: ObservableObject {
                 }
                 fullOutcome += chunk
                 self.outcomeText = fullOutcome
+
+                onUpdate(fullOutcome)
 
                 try await Task.sleep(nanoseconds: 4_000_000)
             }
@@ -54,6 +56,15 @@ class OutcomeViewModel: ObservableObject {
             isGenerating = false
             return nil
         }
+    }
+
+    private func extractStudyId(from chunk: String) -> String? {
+        if let data = chunk.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let studyId = json["study_id"] as? String {
+            return studyId
+        }
+        return nil
     }
 
     private func generateCSVAsync() async throws -> String {
