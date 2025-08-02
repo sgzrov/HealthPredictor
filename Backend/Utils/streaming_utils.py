@@ -1,6 +1,9 @@
 import json
+import logging
 from typing import Any, Optional, Callable
 from fastapi.responses import StreamingResponse
+
+logger = logging.getLogger(__name__)
 
 def extract_text_from_chunk(chunk: Any, full_response: str = "") -> str:
     if hasattr(chunk, 'type'):
@@ -20,7 +23,6 @@ def extract_text_from_chunk(chunk: Any, full_response: str = "") -> str:
 
 def process_streaming_response(response: Any, conversation_callback: Optional[Callable[[str], None]] = None, partial_callback: Optional[Callable[[str], None]] = None) -> Any:
     full_response = ""
-
     for chunk in response:
         text = extract_text_from_chunk(chunk, full_response)
         if text:
@@ -28,7 +30,13 @@ def process_streaming_response(response: Any, conversation_callback: Optional[Ca
             yield f"data: {json.dumps({'content': text, 'done': False})}\n\n"
 
     if conversation_callback and full_response.strip():
-        conversation_callback(full_response.strip())
+        try:
+            conversation_callback(full_response.strip())
+            logger.info(f"[DEBUG] process_streaming_response: conversation_callback successful")
+        except Exception as e:
+            logger.error(f"[DEBUG] process_streaming_response: conversation_callback failed: {e}")
+    else:
+        logger.warning(f"[DEBUG] process_streaming_response: No callback or empty response - callback: {conversation_callback is not None}")
     yield f"data: {json.dumps({'content': '', 'done': True})}\n\n"
 
 def create_streaming_response(generator_func: Callable, **kwargs) -> StreamingResponse:
