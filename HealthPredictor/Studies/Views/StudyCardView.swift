@@ -55,6 +55,7 @@ struct StudyCardView: View {
 
 #Preview {
     let study = Study(
+        studyId: "sample-study-id",
         title: "Sample Study Title",
         summary: "This is a sample study summary.",
         outcome: "This is a sample outcome.",
