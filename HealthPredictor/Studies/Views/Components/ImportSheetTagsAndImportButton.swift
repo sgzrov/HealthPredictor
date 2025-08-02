@@ -3,8 +3,6 @@ import SwiftUI
 struct ImportSheetTagsAndImportButton: View {
 
     @ObservedObject var importVM: TagExtractionViewModel
-    @ObservedObject var summaryVM: SummaryViewModel
-    @ObservedObject var outcomeVM: OutcomeViewModel
 
     @Binding var selectedFileURL: URL?
 
@@ -21,9 +19,7 @@ struct ImportSheetTagsAndImportButton: View {
                             .transition(.scale.combined(with: .opacity))
                             .onAppear {
                                 if idx == importVM.visibleTags.count - 1 {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                        isTextFieldFocused = false
-                                    }
+                                    isTextFieldFocused = false
                                 }
                             }
                     }
@@ -49,8 +45,7 @@ struct ImportSheetTagsAndImportButton: View {
                 importVM.visibleTags.count < 1 ||
                 (importVM.importInput.isEmpty && selectedFileURL == nil) ||
                 (!importVM.isFullyValidURL() && selectedFileURL == nil) ||
-                !importVM.errorMessage.isEmpty ||
-                summaryVM.isSummarizing
+                !importVM.errorMessage.isEmpty
             )
             .opacity(
                 importVM.isLoading ||
@@ -58,8 +53,7 @@ struct ImportSheetTagsAndImportButton: View {
                 importVM.visibleTags.count < 1 ||
                 (importVM.importInput.isEmpty && selectedFileURL == nil) ||
                 (!importVM.isFullyValidURL() && selectedFileURL == nil) ||
-                !importVM.errorMessage.isEmpty ||
-                summaryVM.isSummarizing
+                !importVM.errorMessage.isEmpty
                 ? 0.5 : 1.0
             )
             .padding(.bottom, 24)
