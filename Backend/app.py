@@ -16,8 +16,9 @@ from Backend.Database.s3_storage import S3Storage
 
 from Backend.Utils.streaming_utils import process_streaming_response, create_streaming_response
 from Backend.Utils.conversation_utils import setup_conversation_history
+from Backend.Utils.study_utils import setup_study_id
 
-from Backend.Models.requests import SummarizeRequest, SelectorRequest, SimpleChatRequest, ChatWithCIRequest, GenerateOutcomeRequest
+from Backend.Models.requests import StudySummaryRequest, CodeInterpreterSelectorRequest, SimpleChatRequest, ChatWithCIRequest, StudyOutcomeRequest
 
 from Backend.Database import *
 
@@ -84,7 +85,7 @@ async def chat_with_ci(request: ChatWithCIRequest, req: Request):
             try:
                 # Use the new conversation_id if one was created
                 conversation_id = new_conversation_id or request.conversation_id
-                response = chat_agent.analyze_health_data(file_obj, user_input_str, user_id, conversation_id = conversation_id, session = session)
+                response = chat_agent.chat_with_code_interpreter(file_obj, user_input_str, user_id, conversation_id = conversation_id, session = session)
                 for event in process_streaming_response(response, save_conversation, save_partial_conversation):
                     yield event
             except Exception as e:
@@ -122,7 +123,7 @@ async def simple_chat(request: SimpleChatRequest, req: Request):
     return create_streaming_response(generate_stream)
 
 @app.post("/should-use-code-interpreter/")
-async def should_use_code_interpreter(request: SelectorRequest, _ = Depends(verify_clerk_jwt)):
+async def should_use_code_interpreter(request: CodeInterpreterSelectorRequest, _ = Depends(verify_clerk_jwt)):
     try:
         result = selector_agent.should_use_code_interpreter(request.user_input)
         use_code_interpreter = result.lower() == "yes"
@@ -131,8 +132,29 @@ async def should_use_code_interpreter(request: SelectorRequest, _ = Depends(veri
         logger.error(f"Selector error: {e}")
         raise HTTPException(status_code = 500, detail = str(e))
 
-@app.post("/generate-outcome/")
-async def generate_outcome(request: GenerateOutcomeRequest, _ = Depends(verify_clerk_jwt)):
+@app.post("/create-study/")
+async def create_study_endpoint(req: Request):
+    user = verify_clerk_jwt(req)
+    user_id = user['sub']
+
+    try:
+        session = SessionLocal()
+        try:
+            save_outcome, save_summary, study_id = setup_study_id(user_id, "Study", session, summary_agent, outcome_agent)
+            logger.info(f"[DEBUG] create_study: Created study with study_id: {study_id}")
+            return {"study_id": study_id}
+        finally:
+            session.close()
+    except Exception as e:
+        logger.error(f"Error in create_study: {e}")
+        raise HTTPException(status_code = 500, detail = str(e))
+
+@app.post("/generate-study-outcome/")
+async def generate_outcome(request: StudyOutcomeRequest, req: Request):
+    user = verify_clerk_jwt(req)
+    user_id = user['sub']
+    logger.info(f"[DEBUG] generate_outcome: Received request with user_id: {user_id}")
+
     if s3_storage is None:
         logger.error("S3 storage is None")
         raise HTTPException(status_code = 503, detail = "Tigris storage not configured")
@@ -141,33 +163,44 @@ async def generate_outcome(request: GenerateOutcomeRequest, _ = Depends(verify_c
         file_obj = s3_storage.download_file_from_url(request.s3_url)
 
         async def generate_stream():
+            session = SessionLocal()
             try:
-                response = outcome_agent.generate_outcome_stream(file_obj, request.user_input)
-                for event in process_streaming_response(response):
+                save_summary, save_outcome, study_id = setup_study_id(user_id, "Study", session, summary_agent, outcome_agent, request.study_id)
+                yield f"data: {json.dumps({'study_id': study_id, 'done': False})}\n\n"
+                response = outcome_agent.get_study_outcome(file_obj, request.user_input)
+                for event in process_streaming_response(response, save_outcome):
                     yield event
             except Exception as e:
                 logger.error(f"Outcome generation error: {e}")
                 yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
-
+            finally:
+                session.close()
         return create_streaming_response(generate_stream)
-
     except Exception as e:
         logger.error(f"Error in generate_outcome: {e}")
         raise HTTPException(status_code = 500, detail = str(e))
 
-@app.post("/summarize-study/")
-async def summarize_study(request: SummarizeRequest, _ = Depends(verify_clerk_jwt)):
+@app.post("/generate-study-summary/")
+async def summarize_study(request: StudySummaryRequest, req: Request):
+    user = verify_clerk_jwt(req)
+    user_id = user['sub']
+    logger.info(f"[DEBUG] summarize_study: Received request with user_id: {user_id}")
+
     try:
         async def generate_stream():
+            session = SessionLocal()
             try:
-                response = summary_agent.summarize_stream(request.text)
-                for event in process_streaming_response(response):
+                save_summary, save_outcome, study_id = setup_study_id(user_id, "Study", session, summary_agent, outcome_agent, request.study_id)
+                yield f"data: {json.dumps({'study_id': study_id, 'done': False})}\n\n"
+                response = summary_agent.generate_study_summary(request.text)
+                for event in process_streaming_response(response, save_summary):
                     yield event
             except Exception as e:
                 logger.error(f"Summary generation error: {e}")
                 yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
+            finally:
+                session.close()
         return create_streaming_response(generate_stream)
-
     except Exception as e:
         logger.error(f"Error in summarize_study: {e}")
         raise HTTPException(status_code = 500, detail = str(e))
