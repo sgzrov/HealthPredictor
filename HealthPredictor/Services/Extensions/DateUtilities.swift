@@ -53,7 +53,7 @@ struct DateUtilities {
         }
     }
 
-    // Mark - JSON Decoder Integration
+    // MARK: - JSON Decoder Integration
 
     static func createBackendDecoder() -> JSONDecoder {
         let decoder = JSONDecoder()
