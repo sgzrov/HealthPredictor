@@ -1,6 +1,8 @@
-import openai
 import logging
+import openai
 from typing import Optional, Any, Generator
+
+from Backend.Database.study_repository import update_study_summary_by_id
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -19,7 +21,15 @@ class StudySummaryAgent:
             logger.error(f"Error reading prompt file: {e}")
             raise
 
-    def summarize_stream(self, text: str, prompt: Optional[str] = None) -> Generator[Any, None, None]:
+    # Persist study summary to the database
+    def _append_study_summary(self, study_id: str, user_id: str, summary: str, session) -> None:
+        if not study_id or not summary.strip():
+            return
+        if session is None:
+            raise ValueError("A database session must be provided.")
+        update_study_summary_by_id(session, study_id, summary.strip(), user_id)
+
+    def generate_study_summary(self, text: str, prompt: Optional[str] = None) -> Generator[Any, None, None]:
         instructions = prompt if prompt is not None else self.prompt
 
         try:
@@ -34,5 +44,5 @@ class StudySummaryAgent:
             logger.error(f"OpenAI API error: {e}")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error in summarize_stream: {e}")
+            logger.error(f"Unexpected error in generate_study_summary: {e}")
             raise

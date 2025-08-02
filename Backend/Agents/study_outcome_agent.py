@@ -29,7 +29,7 @@ class StudyOutcomeAgent:
             raise ValueError("A database session must be provided.")
         update_study_outcome_by_id(session, study_id, outcome.strip(), user_id)
 
-    def generate_outcome_stream(self, file_obj: BinaryIO, user_input: str, prompt: Optional[str] = None, filename: str = "user_health_data.csv") -> Generator[Any, None, None]:
+    def generate_study_outcome(self, file_obj: BinaryIO, user_input: str, prompt: Optional[str] = None, filename: str = "user_health_data.csv") -> Generator[Any, None, None]:
         instructions = prompt if prompt is not None else self.prompt
 
         try:
@@ -59,5 +59,5 @@ class StudyOutcomeAgent:
             logger.error(f"OpenAI API error: {e}")
             raise
         except Exception as e:
-            logger.error(f"Unexpected error in generate_outcome_stream: {e}")
+            logger.error(f"Unexpected error generate_study_outcome: {e}")
             raise
