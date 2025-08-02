@@ -10,27 +10,26 @@ class StudyCardViewModel: ObservableObject {
     }
 
     var formattedDate: String {
-        let date = study.importDate
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM d'<<suffix>>' yyyy 'at' HH:mm"
-        let calendar = Calendar.current
-        let day = calendar.component(.day, from: date)
-        let suffix: String
-
-        switch day {
-        case 1, 21, 31: suffix = "st"
-        case 2, 22: suffix = "nd"
-        case 3, 23: suffix = "rd"
-        default: suffix = "th"
+        guard let date = study.importDate else {
+            return "No date"
         }
-
-        let dateString = formatter.string(from: date)
-
-        return dateString.replacingOccurrences(of: "<<suffix>>", with: suffix)
+        return DateUtilities.formatDisplayDate(date)
     }
 
     var summaryText: String {
-        study.summary.isEmpty ? "No summary yet" : study.summary
+        if study.summary.isEmpty {
+            return "No summary yet"
+        } else {
+            // Show first sentence or first 100 characters for preview
+            let sentences = study.summary.components(separatedBy: [".", "!", "?"])
+            if let firstSentence = sentences.first?.trimmingCharacters(in: .whitespacesAndNewlines), !firstSentence.isEmpty {
+                return firstSentence + "."
+            } else {
+                // Fallback to first 100 characters if no sentence found
+                let preview = String(study.summary.prefix(100))
+                return preview + (study.summary.count > 100 ? "..." : "")
+            }
+        }
     }
 
     var isSummaryEmpty: Bool {
