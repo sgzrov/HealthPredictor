@@ -1,5 +1,4 @@
 import logging
-import uuid
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import func
@@ -7,6 +6,7 @@ from sqlalchemy import func
 from Backend.Database.db import SessionLocal
 from Backend.Database.chat_repository import get_chat_history, create_chat_message
 from Backend.Database.chat_models import ChatsDB
+from Backend.Utils.conversation_utils import generate_conversation_id
 from Backend.auth import verify_clerk_jwt
 
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -73,11 +73,10 @@ def get_all_chat_messages(conversation_id: str, request: Request):
 def add_chat_message(conversation_id: Optional[str] = None, role: str = '', content: str = '', request: Request = None):
     if conversation_id is not None and conversation_id.strip() == '':
         raise HTTPException(status_code = 400, detail = "conversation_id cannot be empty string")
-    if not conversation_id:
-        conversation_id = str(uuid.uuid4())
-        is_new_conversation = True
-    else:
-        is_new_conversation = False
+
+    original_conversation_id = conversation_id
+    conversation_id = generate_conversation_id(conversation_id)
+    is_new_conversation = original_conversation_id is None
 
     user = verify_clerk_jwt(request)
     user_id = user['sub']

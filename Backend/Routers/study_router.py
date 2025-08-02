@@ -1,9 +1,9 @@
 import logging
-import uuid
 from fastapi import APIRouter, Request, HTTPException
 
 from Backend.Database.db import SessionLocal
 from Backend.Database.study_repository import create_study, get_studies_for_user, get_study_by_id
+from Backend.Utils.study_utils import generate_study_id
 from Backend.auth import verify_clerk_jwt
 
 router = APIRouter(prefix = "/studies", tags = ["studies"])
@@ -67,9 +67,9 @@ def add_new_study(title: str = '', summary: str = '', outcome: str = '', study_i
     user = verify_clerk_jwt(request)
     user_id = user['sub']
 
-    # Use provided study_id or generate a new one
-    if study_id is None:
-        study_id = str(uuid.uuid4())
+    original_study_id = study_id
+    study_id = generate_study_id(study_id)
+    if original_study_id is None:  # If a new ID was generated
         logger.info(f"[DEBUG] add_new_study: Generated new study_id: {study_id}")
 
     session = SessionLocal()
