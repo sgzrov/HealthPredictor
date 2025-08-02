@@ -10,17 +10,15 @@ import SwiftUI
 struct ImportSheetView: View {
 
     @ObservedObject var importVM: TagExtractionViewModel
-
-    @StateObject private var summaryVM = SummaryViewModel()
-    @StateObject private var outcomeVM = OutcomeViewModel()
+    @ObservedObject var studiesVM: StudyViewModel
 
     @Binding var showFileImporter: Bool
     @Binding var selectedFileURL: URL?
 
     @FocusState private var isTextFieldFocused: Bool
 
-    var onDismiss: () -> Void
-    var onImport: (Study) -> Void = { _ in }
+    let onDismiss: () -> Void
+    let onImport: (Study, String) -> Void
 
     var body: some View {
         ZStack {
@@ -44,7 +42,7 @@ struct ImportSheetView: View {
                         .padding(.horizontal, 50)
                 }
                 ImportSheetInputSection(importVM: importVM, selectedFileURL: $selectedFileURL, isTextFieldFocused: $isTextFieldFocused)
-                ImportSheetTagsAndImportButton(importVM: importVM, summaryVM: summaryVM, outcomeVM: outcomeVM, selectedFileURL: $selectedFileURL, isTextFieldFocused: $isTextFieldFocused, onImport: {
+                ImportSheetTagsAndImportButton(importVM: importVM, selectedFileURL: $selectedFileURL, isTextFieldFocused: $isTextFieldFocused, onImport: {
 
                     // Capture the URL and input before dismissing the view
                     let capturedURL = selectedFileURL
@@ -52,13 +50,14 @@ struct ImportSheetView: View {
 
                     let url = selectedFileURL ?? URL(string: importVM.importInput)!
                     var study = Study(
+                        studyId: nil,
                         title: url.lastPathComponent,
                         summary: "",
                         outcome: "",
                         importDate: Date()
                     )
-                    onImport(study)
-                    onDismiss()
+                    print("[DEBUG] ImportSheetView: Created study with nil studyId, title: \(study.title)")
+
                     Task {
                         let extractedText: String?
 
@@ -73,37 +72,28 @@ struct ImportSheetView: View {
                         }
 
                         guard let extractedText, !extractedText.isEmpty else {
-                            summaryVM.errorMessage = "Text extraction failed. Please check the file or URL."
-                            outcomeVM.errorMessage = "Text extraction failed. Please check the file or URL."
+                            print("[DEBUG] ImportSheetView: Text extraction failed")
                             return
                         }
 
-                        Task {
-                            _ = await summaryVM.summarizeStudy(text: extractedText)
-                        }
+                        do {
+                            let studyId = try await BackendService.shared.createStudy()  // Feed one study to both the summary/outcome to not get error of mixed persistence (summaries and outcomes are written to different studies)
+                            study.studyId = studyId
+                            print("[DEBUG] ImportSheetView: Created study with study_id: \(studyId)")
 
-                        Task {
-                            _ = await outcomeVM.generateOutcome(from: extractedText)
-                        }
-
-                        Task {
-                            for await summary in summaryVM.$summarizedText.values {
-                                if let summary, !summary.isEmpty {
-                                    await MainActor.run {
-                                        study.summary = summary
-                                    }
-                                }
+                            // Add the study to the studies array so it can be updated during streaming
+                            await MainActor.run {
+                                studiesVM.studies.insert(study, at: 0)
+                                print("[DEBUG] ImportSheetView: Added study to studies array, total studies: \(studiesVM.studies.count)")
                             }
-                        }
 
-                        Task {
-                            for await outcome in outcomeVM.$outcomeText.values {
-                                if let outcome, !outcome.isEmpty {
-                                    await MainActor.run {
-                                        study.outcome = outcome
-                                    }
-                                }
+                            // Pass the study with extracted text to StudyDetailedView
+                            await MainActor.run {
+                                onImport(study, extractedText)
+                                onDismiss()
                             }
+                        } catch {
+                            print("[DEBUG] ImportSheetView: Failed to create study: \(error)")
                         }
                     }
                 })
@@ -138,9 +128,10 @@ struct ImportSheetView: View {
 #Preview {
     ImportSheetView(
         importVM: TagExtractionViewModel(),
+        studiesVM: StudyViewModel(userToken: "preview-token"),
         showFileImporter: .constant(false),
         selectedFileURL: .constant(nil),
         onDismiss: {},
-        onImport: { _ in }
+        onImport: { _, _ in }
     )
 }
