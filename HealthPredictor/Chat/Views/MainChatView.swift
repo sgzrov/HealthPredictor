@@ -31,9 +31,9 @@ struct MainChatView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color(.systemGroupedBackground).ignoresSafeArea()
-            NavigationStack {
+        NavigationStack {
+            ZStack {
+                Color(.systemGroupedBackground).ignoresSafeArea()
                 ScrollView {
                     if chatHistoryVM.isLoading {
                         VStack {
