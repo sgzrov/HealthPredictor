@@ -52,7 +52,7 @@ if not api_key:
 
 PROMPT_DIR = os.path.join(os.path.dirname(__file__), "Prompts")
 PROMPT_PATHS = {
-    "chat": os.path.join(PROMPT_DIR, "ChatCIPrompt.txt"),
+    "chat": os.path.join(PROMPT_DIR, "ChatWithCodeInterpreterPrompt.txt"),
     "simple_chat": os.path.join(PROMPT_DIR, "SimpleChatPrompt.txt"),
     "code_interpreter_selector": os.path.join(PROMPT_DIR, "CodeInterpreterSelectorPrompt.txt"),
     "outcome": os.path.join(PROMPT_DIR, "OutcomePrompt.txt"),
