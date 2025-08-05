@@ -111,7 +111,7 @@ class AgentBackendService: AgentBackendServiceProtocol {
 
         var body: [String: Any] = [
             "s3_url": s3Url,
-            "user_input": userInput
+            "text": userInput
         ]
 
         if let studyId = studyId {

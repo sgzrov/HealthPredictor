@@ -18,20 +18,20 @@ class OutcomeViewModel: ObservableObject {
     private let backendService = BackendService.shared
     private let healthFileCacheService = UserFileCacheService.shared
 
-    func generateOutcome(from studyText: String, studyId: String, onUpdate: @escaping (String) -> Void) async -> String? {
+    func generateOutcome(userInput: String, studyId: String, onUpdate: @escaping (String) -> Void) async -> String? {
         isGenerating = true
         outcomeText = nil
         errorMessage = nil
 
         do {
-            guard !studyText.isEmpty else {
+            guard !userInput.isEmpty else {
                 isGenerating = false
                 return nil
             }
 
             let csvPath = try await generateCSVAsync()
             var fullOutcome = ""
-            let stream = try await backendService.generateOutcome(csvFilePath: csvPath, userInput: studyText, studyId: studyId)
+            let stream = try await backendService.generateOutcome(csvFilePath: csvPath, userInput: userInput, studyId: studyId)
 
             for await chunk in stream {
                 if chunk.hasPrefix("Error: ") {

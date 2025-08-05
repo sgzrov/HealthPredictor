@@ -83,7 +83,7 @@ struct StudyDetailedView: View {
 
         // Start outcome streaming with real-time updates
         Task {
-            await outcomeVM.generateOutcome(from: extractedText, studyId: studyId) { outcome in
+            await outcomeVM.generateOutcome(userInput: extractedText, studyId: studyId) { outcome in
                 print("[DEBUG] StudyDetailedView: Outcome callback called with length: \(outcome.count)")
                 studiesVM.updateStudyInRealTime(studyId: studyId, outcome: outcome)
             }
