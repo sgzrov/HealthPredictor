@@ -167,7 +167,7 @@ async def generate_outcome(request: StudyOutcomeRequest, req: Request):
             try:
                 save_summary, save_outcome, study_id = setup_study_id(user_id, "Study", session, summary_agent, outcome_agent, request.study_id)
                 yield f"data: {json.dumps({'study_id': study_id, 'done': False})}\n\n"
-                response = outcome_agent.generate_study_outcome(file_obj, request.user_input)
+                response = outcome_agent.generate_study_outcome(file_obj, request.text)
                 for event in process_streaming_response(response, save_outcome):
                     yield event
             except Exception as e:
