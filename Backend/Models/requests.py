@@ -19,5 +19,5 @@ class ChatWithCIRequest(BaseModel):
 
 class StudyOutcomeRequest(BaseModel):
     s3_url: str
-    user_input: str
+    text: str
     study_id: Optional[str] = None
