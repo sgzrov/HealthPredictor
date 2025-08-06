@@ -42,7 +42,7 @@ struct StudiesHomeView: View {
                     } else if studiesVM.studies.isEmpty {
                         VStack {
                             Spacer(minLength: 120)
-                            Text("Tap + to import your first study")
+                            Text("Tap + to import your first study.")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
