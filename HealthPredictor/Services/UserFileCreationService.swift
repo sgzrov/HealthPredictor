@@ -58,12 +58,9 @@ class UserFileCreationService: UserFileCreationServiceProtocol {
         let group = DispatchGroup()
 
         var dailyData: [String: [String: Double]] = [:]
-        var monthlyData: [String: [String: Double]] = [:]
 
-        // Build date ranges
-        let dailyDates: [Date] = (0..<90).compactMap { calendar.date(byAdding: .day, value: -$0, to: today) }
-        let monthsToSkip = 3
-        let monthlyMonths: [Date] = (monthsToSkip..<24).compactMap { calendar.date(byAdding: .month, value: -$0, to: today) }
+        // Build date range
+        let dailyDates: [Date] = (0..<180).compactMap { calendar.date(byAdding: .day, value: -$0, to: today) }
 
         for metric in metricNames {
             if let quantityType = HealthMetricMapper.quantityType(for: metric),
@@ -72,11 +69,9 @@ class UserFileCreationService: UserFileCreationServiceProtocol {
                 fetchQuantityData(
                     type: hkType,
                     metric: metric,
-                    dailyDates: dailyDates,
-                    monthlyMonths: monthlyMonths
-                ) { daily, monthly in
+                    dailyDates: dailyDates
+                ) { daily in
                     for (date, value) in daily { dailyData[date, default: [:]][metric] = value }
-                    for (month, value) in monthly { monthlyData[month, default: [:]][metric] = value }
                     group.leave()
                 }
             } else if let categoryType = HealthMetricMapper.categoryType(for: metric),
@@ -85,11 +80,9 @@ class UserFileCreationService: UserFileCreationServiceProtocol {
                 fetchCategoryData(
                     type: hkType,
                     metric: metric,
-                    dailyDates: dailyDates,
-                    monthlyMonths: monthlyMonths
-                ) { daily, monthly in
+                    dailyDates: dailyDates
+                ) { daily in
                     for (date, value) in daily { dailyData[date, default: [:]][metric] = value }
-                    for (month, value) in monthly { monthlyData[month, default: [:]][metric] = value }
                     group.leave()
                 }
             }
@@ -108,41 +101,27 @@ class UserFileCreationService: UserFileCreationServiceProtocol {
                 return ([dateStr] + values).joined(separator: ",")
             }
 
-            let sortedMonthly = monthlyMonths.map { Self.monthFormatter.string(from: $0) }
-            let monthlyRows: [String] = sortedMonthly.map { monthStr in
-                let values = metricNames.map { metric in
-                    if let val = monthlyData[monthStr]?[metric] {
-                        return String(format: "%.2f", val)
-                    } else {
-                        return ""
-                    }
-                }
-                return ([monthStr] + values).joined(separator: ",")
-            }
-
-            completion(dailyRows, monthlyRows)
+            completion(dailyRows, [])
         }
     }
 
-    private func fetchQuantityData(type: HKQuantityType, metric: String, dailyDates: [Date], monthlyMonths: [Date], completion: @escaping ([String: Double], [String: Double]) -> Void) {
+    private func fetchQuantityData(type: HKQuantityType, metric: String, dailyDates: [Date], completion: @escaping ([String: Double]) -> Void) {
         let calendar = Calendar.current
         let now = Date()
         let startDate = calendar.date(byAdding: .day, value: -149, to: now) ?? now
         let anchorDate = calendar.startOfDay(for: startDate)
         let dailyInterval = DateComponents(day: 1)
-        let monthlyInterval = DateComponents(month: 1)
         let predicate = HKQuery.predicateForSamples(withStart: calendar.date(byAdding: .year, value: -2, to: now), end: now, options: .strictStartDate)
         let unit = HKUnit(from: HealthMetricMapper.unit(for: metric))
         let statsOption = HealthMetricMapper.statisticsOption(for: metric)
 
         var dailyResults: [String: Double] = [:]
-        var monthlyResults: [String: Double] = [:]
 
         let dailyQuery = HKStatisticsCollectionQuery(quantityType: type, quantitySamplePredicate: predicate, options: statsOption, anchorDate: anchorDate, intervalComponents: dailyInterval)
         dailyQuery.initialResultsHandler = { [weak self] _, results, error in
             if let error = error {
                 print("Error fetching daily \(metric): \(error.localizedDescription)")
-                completion(dailyResults, monthlyResults)
+                completion(dailyResults)
                 return
             }
 
@@ -155,27 +134,7 @@ class UserFileCreationService: UserFileCreationServiceProtocol {
                     }
                 }
             }
-
-            let monthlyQuery = HKStatisticsCollectionQuery(quantityType: type, quantitySamplePredicate: predicate, options: statsOption, anchorDate: anchorDate, intervalComponents: monthlyInterval)
-            monthlyQuery.initialResultsHandler = { [weak self] _, results, error in
-                if let error = error {
-                    print("Error fetching monthly \(metric): \(error.localizedDescription)")
-                    completion(dailyResults, monthlyResults)
-                    return
-                }
-
-                if let statsCollection = results {
-                    for month in monthlyMonths {
-                        let stat = statsCollection.statistics(for: month)
-                        let value = self?.extractQuantityValue(stat: stat, unit: unit, statsOption: statsOption)
-                        if let value = value {
-                            monthlyResults[Self.monthFormatter.string(from: month)] = value
-                        }
-                    }
-                }
-                completion(dailyResults, monthlyResults)
-            }
-            self?.healthStoreService.healthStore.execute(monthlyQuery)
+            completion(dailyResults)
         }
         self.healthStoreService.healthStore.execute(dailyQuery)
     }
@@ -188,24 +147,23 @@ class UserFileCreationService: UserFileCreationServiceProtocol {
         }
     }
 
-    private func fetchCategoryData(type: HKCategoryType, metric: String, dailyDates: [Date], monthlyMonths: [Date], completion: @escaping ([String: Double], [String: Double]) -> Void) {
+    private func fetchCategoryData(type: HKCategoryType, metric: String, dailyDates: [Date], completion: @escaping ([String: Double]) -> Void) {
         let calendar = Calendar.current
         let now = Date()
         let startDate = calendar.date(byAdding: .year, value: -2, to: now) ?? now
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: now, options: .strictStartDate)
 
         var dailyResults: [String: Double] = [:]
-        var monthlyResults: [String: Double] = [:]
 
         let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { [weak self] _, samples, error in
             if let error = error {
                 print("Error fetching category \(metric): \(error.localizedDescription)")
-                completion(dailyResults, monthlyResults)
+                completion(dailyResults)
                 return
             }
 
             guard let samples = samples as? [HKCategorySample] else {
-                completion(dailyResults, monthlyResults)
+                completion(dailyResults)
                 return
             }
 
@@ -220,19 +178,7 @@ class UserFileCreationService: UserFileCreationServiceProtocol {
                     }
                 }
             }
-
-            for month in monthlyMonths {
-                let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: month)) ?? month
-                let monthEnd = calendar.date(byAdding: .month, value: 1, to: monthStart) ?? monthStart
-                let monthSamples = samples.filter { $0.startDate >= monthStart && $0.startDate < monthEnd }
-                if !monthSamples.isEmpty {
-                    let total = self?.calculateCategoryTotal(samples: monthSamples, metric: metric)
-                    if let total = total {
-                        monthlyResults[Self.monthFormatter.string(from: month)] = total
-                    }
-                }
-            }
-            completion(dailyResults, monthlyResults)
+            completion(dailyResults)
         }
         self.healthStoreService.healthStore.execute(query)
     }
