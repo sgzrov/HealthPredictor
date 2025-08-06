@@ -6,3 +6,13 @@ Secrets.plist
 __pycache__/
 venv/
 .env
+
+#iOS build artifacts
+*.xcarchive/
+*.car
+*.mobileprovision
+PkgInfo
+CodeResources
+PrivacyInfo.xcprivacy
+*.ipa
+exportOptions.plist
