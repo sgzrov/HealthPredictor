@@ -24,7 +24,17 @@ struct HealthMetricMapper {
         "Weight": .bodyMass,
         "BMI": .bodyMassIndex,
         "Blood Glucose": .bloodGlucose,
-        "Oxygen Saturation": .oxygenSaturation
+        "Oxygen Saturation": .oxygenSaturation,
+        "Body Fat": .bodyFatPercentage,
+        "Muscle Mass": .leanBodyMass,
+        "Basal Energy": .basalEnergyBurned,
+        "Flights Climbed": .flightsClimbed,
+        "Distance Walking": .distanceWalkingRunning,
+        "Exercise Minutes": .appleExerciseTime,
+        "Stand Hours": .appleStandTime,
+        "Respiratory Rate": .respiratoryRate,
+        "Body Temperature": .bodyTemperature,
+        "Blood Pressure Diastolic": .bloodPressureDiastolic
     ]
 
     static let categorySubtagToType: [String: HKCategoryTypeIdentifier] = [
@@ -48,7 +58,17 @@ struct HealthMetricMapper {
         "BMI": "",
         "Blood Pressure": "mmHg",
         "Mindfulness Minutes": "min",
-        "Sleep Duration": "hours"
+        "Sleep Duration": "hours",
+        "Body Fat": "%",
+        "Muscle Mass": "kg",
+        "Basal Energy": "kcal",
+        "Flights Climbed": "count",
+        "Distance Walking": "m",
+        "Exercise Minutes": "min",
+        "Stand Hours": "hr",
+        "Respiratory Rate": "count/min",
+        "Body Temperature": "degC",
+        "Blood Pressure Diastolic": "mmHg"
     ]
 
     static func quantityType(for subtag: String) -> HKQuantityTypeIdentifier? {
@@ -61,7 +81,7 @@ struct HealthMetricMapper {
 
     static func statisticsOption(for subtag: String) -> HKStatisticsOptions {
         switch subtag {
-        case "Step Count", "Active Energy", "Hydration":
+        case "Step Count", "Active Energy", "Hydration", "Flights Climbed", "Distance Walking", "Exercise Minutes", "Stand Hours", "Basal Energy":
             return .cumulativeSum
         default:
             return .discreteAverage
